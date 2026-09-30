@@ -1,0 +1,7 @@
+# Copy to .dev.vars for local development (never commit .dev.vars).
+# In production set these with: npx wrangler secret put <NAME>
+DISCORD_APPLICATION_ID=
+DISCORD_PUBLIC_KEY=
+DISCORD_BOT_TOKEN=
+# Optional: register commands to one server instantly while developing
+DISCORD_DEV_GUILD_ID=
