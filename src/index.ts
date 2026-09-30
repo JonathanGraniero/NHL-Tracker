@@ -39,7 +39,7 @@ export default {
     }
   },
 
-  /** Runs on the cron in wrangler.toml. News polling arrives in Milestone 3. */
+  /** Runs on the cron in infra/variables.tf. News polling arrives in Milestone 3. */
   async scheduled(controller: ScheduledController, _env: Env, _ctx: ExecutionContext): Promise<void> {
     console.log(`cron ${controller.cron} fired at ${new Date(controller.scheduledTime).toISOString()}`);
   },
