@@ -1,5 +1,5 @@
 # Copy to .dev.vars for local development (never commit .dev.vars).
-# In production set these with: npx wrangler secret put <NAME>
+# In production these come from GitHub Actions secrets and variables (see README).
 DISCORD_APPLICATION_ID=
 DISCORD_PUBLIC_KEY=
 DISCORD_BOT_TOKEN=
