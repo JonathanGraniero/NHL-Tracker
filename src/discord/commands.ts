@@ -16,6 +16,9 @@ import {
   upsertSubscription,
 } from "../db/subscriptions";
 import { ALL_TYPES, describeTypes, type TransactionType } from "../types";
+import { editOriginalResponse } from "./api";
+import { processItem, type Outcome } from "../news/pipeline";
+import { RedditError, fetchPost, postIdFromInput } from "../sources/reddit";
 import type { Env } from "../env";
 
 /** Permission bit for "Manage Server". Admins can change who may use a command in Server Settings → Integrations. */
@@ -57,9 +60,22 @@ export const COMMANDS = [
     description: "Show which teams this channel follows.",
     contexts: GUILD_ONLY,
   },
+  {
+    name: "replay",
+    description: "Run an r/hockey post through the filter and, if it's a confirmed move, post it in this server.",
+    default_member_permissions: MANAGE_GUILD,
+    contexts: GUILD_ONLY,
+    options: [
+      { type: OptionType.STRING, name: "post", description: "Link to the r/hockey post", required: true },
+    ],
+  },
 ] as const;
 
-export async function handleCommand(interaction: Interaction, env: Env): Promise<InteractionResponse> {
+export async function handleCommand(
+  interaction: Interaction,
+  env: Env,
+  ctx: ExecutionContext,
+): Promise<InteractionResponse> {
   const name = interaction.data?.name;
   if (name === "ping") return reply("🏒 Pong! NHL Trade Tracker is online.");
 
@@ -73,6 +89,8 @@ export async function handleCommand(interaction: Interaction, env: Env): Promise
       return unsubscribe(env.DB, channelId, interaction);
     case "subscriptions":
       return showSubscriptions(env.DB, channelId);
+    case "replay":
+      return replay(env, ctx, guildId, interaction);
     default:
       return reply("Unknown command.");
   }
@@ -143,6 +161,54 @@ async function showSubscriptions(db: D1Database, channelId: string) {
   );
   const lines = subs.map((s) => `• **${teamLabel(s.teamCode)}**: ${describeTypes(s.types)}`);
   return reply(`**This channel follows:**\n${lines.join("\n")}`);
+}
+
+/** Answers straight away ("thinking…"), then fetches and posts in the background. */
+function replay(env: Env, ctx: ExecutionContext, guildId: string, interaction: Interaction): InteractionResponse {
+  const input = stringOption(interaction, "post");
+  const postId = postIdFromInput(input);
+  if (!postId) return reply(`❌ That doesn't look like a Reddit post link: "${input}"`);
+
+  ctx.waitUntil(
+    (async () => {
+      let content: string;
+      try {
+        const item = await fetchPost(postId);
+        content = item
+          ? describeReplay(await processItem(env, item, { now: Date.now(), guildId }), item.title)
+          : "❌ Reddit doesn't have a post with that link.";
+      } catch (err) {
+        console.error("replay failed", err);
+        content =
+          err instanceof RedditError && err.status === 429
+            ? "⏳ Reddit is rate-limiting the bot right now. Try again in a minute."
+            : "❌ Something went wrong fetching that post. Try again in a minute.";
+      }
+      await editOriginalResponse(interaction.application_id, interaction.token, { content });
+    })(),
+  );
+  return {
+    type: InteractionResponseType.DEFERRED_CHANNEL_MESSAGE_WITH_SOURCE,
+    data: { flags: EPHEMERAL },
+  };
+}
+
+function describeReplay(outcome: Outcome, title: string): string {
+  const quoted = `> ${title}`;
+  if (outcome.kind === "rejected") return `⏭️ **Wouldn't post this:** ${outcome.reason}.\n${quoted}`;
+  if (outcome.kind === "duplicate") return `✅ Already recorded as a confirmed move.\n${quoted}`;
+
+  const { event, channels, failed } = outcome;
+  const teams = event.teams.map(teamLabel).join(event.type === "trade" ? " ↔ " : ", ");
+  const lines = [`✅ **Confirmed ${event.type}** (${teams}) from **${event.source}**.`];
+  if (channels.length > 0) lines.push(`Posted in ${channels.map((c) => `<#${c}>`).join(", ")}.`);
+  if (failed.length > 0) {
+    lines.push(`⚠️ Couldn't post in ${failed.map((c) => `<#${c}>`).join(", ")}. Check the bot can view the channel, send messages and embed links there.`);
+  }
+  if (channels.length === 0 && failed.length === 0) {
+    lines.push(`Nothing new to post: no channel in this server follows these teams for ${event.type}s, or they already have it.`);
+  }
+  return `${lines.join("\n")}\n${quoted}`;
 }
 
 function teamChoices(query: string): Choice[] {

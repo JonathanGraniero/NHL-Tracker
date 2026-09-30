@@ -10,6 +10,8 @@ export const InteractionType = {
 export const InteractionResponseType = {
   PONG: 1,
   CHANNEL_MESSAGE_WITH_SOURCE: 4,
+  /** "Bot is thinking…"; the real reply follows via editOriginalResponse. */
+  DEFERRED_CHANNEL_MESSAGE_WITH_SOURCE: 5,
   APPLICATION_COMMAND_AUTOCOMPLETE_RESULT: 8,
 } as const;
 
@@ -33,6 +35,9 @@ export interface CommandOption {
 
 export interface Interaction {
   id: string;
+  application_id: string;
+  /** Lets the bot edit its reply for 15 minutes after the interaction. */
+  token: string;
   type: number;
   guild_id?: string;
   channel_id?: string;

@@ -1,0 +1,176 @@
+import { classify } from "./classify";
+import { buildMessage } from "./embed";
+import { createMessage } from "../discord/api";
+import {
+  filterUnseen,
+  findEventByFingerprint,
+  findEventByItem,
+  getState,
+  insertEvent,
+  markSeen,
+  postedChannels,
+  recentEvents,
+  recordPost,
+  setState,
+  type NewsEvent,
+} from "../db/events";
+import { findChannelsFor } from "../db/subscriptions";
+import { RedditError, fetchNewPosts, type SourceItem } from "../sources/reddit";
+import type { Env } from "../env";
+
+/** Older posts are skipped rather than posted late (e.g. after Reddit was unreachable for a while). */
+export const MAX_AGE_MS = 6 * 60 * 60 * 1000;
+/** Reports of the same move this far apart are treated as one event. */
+const DEDUPE_WINDOW_MS = 48 * 60 * 60 * 1000;
+/** Set once the first scan has marked the existing feed as seen, so the bot doesn't post a backlog. */
+const READY_KEY = "reddit_ready";
+
+export type Outcome =
+  | { kind: "rejected"; reason: string }
+  | { kind: "duplicate"; event: NewsEvent }
+  | { kind: "posted"; event: NewsEvent; channels: string[]; failed: string[] };
+
+/** Runs on the cron: fetch r/hockey, then classify, dedupe and post anything new. */
+export async function runScan(env: Env, now: number): Promise<void> {
+  let items: SourceItem[];
+  try {
+    items = await fetchNewPosts();
+  } catch (err) {
+    if (err instanceof RedditError) {
+      console.warn(`reddit: ${err.message}, trying again next run`);
+      return;
+    }
+    throw err;
+  }
+
+  const unseen = new Set(await filterUnseen(env.DB, "reddit", items.map((i) => i.id)));
+
+  if (!(await getState(env.DB, READY_KEY))) {
+    for (const item of items) await markSeen(env.DB, "reddit", item.id, now);
+    await setState(env.DB, READY_KEY, String(now));
+    console.log(`reddit: first run, marked ${items.length} existing posts as seen without posting`);
+    return;
+  }
+
+  for (const item of items) {
+    if (!unseen.has(item.id)) continue;
+    if (now - item.publishedAt > MAX_AGE_MS) {
+      console.log(JSON.stringify({ item: item.id, title: item.title, outcome: "too old" }));
+    } else {
+      const outcome = await processItem(env, item, { now });
+      console.log(JSON.stringify({ item: item.id, title: item.title, ...describe(outcome) }));
+    }
+    // Marked only after processing: if this run dies mid-post, the next run
+    // picks the item up again and processItem finishes the remaining channels.
+    await markSeen(env.DB, "reddit", item.id, now);
+  }
+}
+
+/**
+ * Classifies one item and, if it's a confirmed move nobody has posted yet,
+ * posts it to every subscribed channel that hasn't had it.
+ *
+ * With `guildId` (the /replay command) it posts only in that server, and
+ * also re-posts a move already recorded from another report, so an admin
+ * can see how a past move would have looked.
+ */
+export async function processItem(
+  env: Env,
+  item: SourceItem,
+  opts: { now: number; guildId?: string },
+): Promise<Outcome> {
+  const verdict = classify(item);
+  if (!verdict.confirmed) return { kind: "rejected", reason: verdict.reason };
+
+  const candidate: Omit<NewsEvent, "id"> = {
+    type: verdict.type,
+    teams: verdict.teams,
+    players: verdict.players,
+    headline: item.title,
+    url: item.url,
+    link: pickLink(item.links),
+    source: verdict.source,
+    itemId: item.id,
+    publishedAt: item.publishedAt,
+  };
+  const fingerprint = fingerprintOf(candidate);
+
+  let event = await findEventByItem(env.DB, item.id);
+  if (!event) {
+    const duplicate =
+      (await findDuplicate(env.DB, candidate)) ?? (await findEventByFingerprint(env.DB, fingerprint));
+    if (duplicate && !opts.guildId) return { kind: "duplicate", event: duplicate };
+    event = duplicate ?? (await insertEvent(env.DB, candidate, fingerprint, opts.now));
+    // Lost a race with another run inserting the same fingerprint.
+    event ??= await findEventByFingerprint(env.DB, fingerprint);
+    if (!event) return { kind: "rejected", reason: "could not record the event" };
+  }
+
+  const already = await postedChannels(env.DB, event.id);
+  const targets = (await findChannelsFor(env.DB, event.teams, event.type, opts.guildId)).filter((c) => !already.has(c));
+  const message = buildMessage(event);
+  const channels: string[] = [];
+  const failed: string[] = [];
+  for (const channelId of targets) {
+    const sent = await createMessage(env.DISCORD_BOT_TOKEN, channelId, message);
+    if (sent.ok) {
+      await recordPost(env.DB, { eventId: event.id, channelId, messageId: sent.id }, opts.now);
+      channels.push(channelId);
+    } else {
+      console.error(`post to ${channelId} failed (${sent.status}): ${sent.error}`);
+      failed.push(channelId);
+    }
+  }
+  return { kind: "posted", event, channels, failed };
+}
+
+/**
+ * An earlier event describing the same move. Trades match on two shared
+ * teams (or one team and a player); waivers and signings need a shared
+ * team and a shared player surname.
+ */
+async function findDuplicate(db: D1Database, e: Omit<NewsEvent, "id">): Promise<NewsEvent | undefined> {
+  const candidates = await recentEvents(db, e.type, e.publishedAt - DEDUPE_WINDOW_MS);
+  const surnames = new Set(e.players.map(surname));
+  return candidates.find((other) => {
+    if (Math.abs(other.publishedAt - e.publishedAt) > DEDUPE_WINDOW_MS) return false;
+    const sharedTeams = other.teams.filter((t) => e.teams.includes(t)).length;
+    const sharedPlayer = other.players.some((p) => surnames.has(surname(p)));
+    const noPlayers = e.players.length === 0 || other.players.length === 0;
+    if (e.type === "trade") return sharedTeams >= 2 || (sharedTeams >= 1 && sharedPlayer);
+    return sharedTeams >= 1 && (sharedPlayer || noPlayers);
+  });
+}
+
+function fingerprintOf(e: Omit<NewsEvent, "id">): string {
+  return [e.type, [...e.teams].sort().join("-"), [...new Set(e.players.map(surname))].sort().join("-")].join(":");
+}
+
+function surname(name: string): string {
+  return (name.trim().split(/\s+/).at(-1) ?? "").toLowerCase();
+}
+
+/** The original report: a tweet or an nhl.com article, else the first link. */
+function pickLink(links: readonly string[]): string | null {
+  return (
+    links.find((l) => /^https?:\/\/(www\.)?(x\.com|twitter\.com|xcancel\.com|nhl\.com)\//i.test(l)) ?? links[0] ?? null
+  );
+}
+
+function describe(outcome: Outcome): Record<string, unknown> {
+  switch (outcome.kind) {
+    case "rejected":
+      return { outcome: "rejected", reason: outcome.reason };
+    case "duplicate":
+      return { outcome: "duplicate", event: outcome.event.id };
+    case "posted":
+      return {
+        outcome: "posted",
+        event: outcome.event.id,
+        type: outcome.event.type,
+        teams: outcome.event.teams,
+        channels: outcome.channels.length,
+        failed: outcome.failed.length,
+      };
+  }
+}

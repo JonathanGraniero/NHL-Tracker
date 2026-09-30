@@ -1,11 +1,12 @@
 import { handleAutocomplete, handleCommand } from "./discord/commands";
 import { InteractionResponseType, InteractionType, type Interaction } from "./discord/types";
 import { verifyDiscordRequest } from "./discord/verify";
+import { runScan } from "./news/pipeline";
 import type { Env } from "./env";
 
 export default {
   /** Discord sends slash commands here (set as the app's Interactions Endpoint URL). */
-  async fetch(request: Request, env: Env): Promise<Response> {
+  async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
 
     if (request.method === "GET" && url.pathname === "/") {
@@ -31,7 +32,7 @@ export default {
       case InteractionType.PING:
         return Response.json({ type: InteractionResponseType.PONG });
       case InteractionType.APPLICATION_COMMAND:
-        return Response.json(await handleCommand(interaction, env));
+        return Response.json(await handleCommand(interaction, env, ctx));
       case InteractionType.APPLICATION_COMMAND_AUTOCOMPLETE:
         return Response.json(await handleAutocomplete(interaction, env));
       default:
@@ -39,8 +40,8 @@ export default {
     }
   },
 
-  /** Runs on the cron in infra/variables.tf. News polling arrives in Milestone 3. */
-  async scheduled(controller: ScheduledController, _env: Env, _ctx: ExecutionContext): Promise<void> {
-    console.log(`cron ${controller.cron} fired at ${new Date(controller.scheduledTime).toISOString()}`);
+  /** Runs on the cron in infra/variables.tf: poll r/hockey and post confirmed moves. */
+  async scheduled(controller: ScheduledController, env: Env, _ctx: ExecutionContext): Promise<void> {
+    await runScan(env, controller.scheduledTime);
   },
 } satisfies ExportedHandler<Env>;

@@ -9,6 +9,9 @@ const toHex = (buf: ArrayBuffer) => Buffer.from(buf).toString("hex");
 
 export interface TestBot {
   env: Env;
+  /** Collects ctx.waitUntil() work; await settle() to let it finish. */
+  ctx: ExecutionContext;
+  settle(): Promise<void>;
   send(payload: unknown, opts?: { tamper?: boolean }): Promise<Response>;
   /** Runs a slash command and returns the reply text. */
   command(name: string, options?: Record<string, string | boolean>, ctx?: Ctx): Promise<string>;
@@ -31,6 +34,11 @@ export async function createTestBot(db: D1Database): Promise<TestBot> {
   };
 
   let nextId = 1;
+  const pending: Promise<unknown>[] = [];
+  const ctx = {
+    waitUntil: (p: Promise<unknown>) => void pending.push(p),
+    passThroughOnException: () => {},
+  } as unknown as ExecutionContext;
 
   async function send(payload: unknown, opts: { tamper?: boolean } = {}) {
     const body = JSON.stringify(payload);
@@ -41,12 +49,14 @@ export async function createTestBot(db: D1Database): Promise<TestBot> {
       headers: { "X-Signature-Ed25519": toHex(sig), "X-Signature-Timestamp": timestamp },
       body: opts.tamper ? body.replace("}", ',"x":1}') : body,
     });
-    return worker.fetch(req, env);
+    return worker.fetch(req, env, ctx);
   }
 
   function interaction(type: number, name: string, options: CommandOption[], ctx: Ctx) {
     return {
       id: String(nextId++),
+      application_id: env.DISCORD_APPLICATION_ID,
+      token: `interaction-token-${nextId}`,
       type,
       ...(ctx.guildId === null ? {} : { guild_id: ctx.guildId ?? "guild-1" }),
       channel_id: ctx.channelId ?? "channel-1",
@@ -56,6 +66,10 @@ export async function createTestBot(db: D1Database): Promise<TestBot> {
 
   return {
     env,
+    ctx,
+    async settle() {
+      while (pending.length > 0) await Promise.all(pending.splice(0));
+    },
     send,
     async command(name, options = {}, ctx = {}) {
       const opts = Object.entries(options).map(([n, value]) => ({
