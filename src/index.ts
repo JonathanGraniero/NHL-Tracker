@@ -1,4 +1,4 @@
-import { handleCommand } from "./discord/commands";
+import { handleAutocomplete, handleCommand } from "./discord/commands";
 import { InteractionResponseType, InteractionType, type Interaction } from "./discord/types";
 import { verifyDiscordRequest } from "./discord/verify";
 import type { Env } from "./env";
@@ -32,6 +32,8 @@ export default {
         return Response.json({ type: InteractionResponseType.PONG });
       case InteractionType.APPLICATION_COMMAND:
         return Response.json(await handleCommand(interaction, env));
+      case InteractionType.APPLICATION_COMMAND_AUTOCOMPLETE:
+        return Response.json(await handleAutocomplete(interaction, env));
       default:
         return new Response("Unsupported interaction type", { status: 400 });
     }

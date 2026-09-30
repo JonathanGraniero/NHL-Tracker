@@ -48,3 +48,32 @@ const BY_CODE = new Map(TEAMS.map((t) => [t.code, t]));
 export function getTeam(code: string): Team | undefined {
   return BY_CODE.get(code.toUpperCase());
 }
+
+const normalize = (s: string) =>
+  s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").trim();
+
+/**
+ * Turns what a user typed (or picked from autocomplete) into a team.
+ * Accepts a code ("TOR"), full name ("Toronto Maple Leafs") or alias ("leafs").
+ */
+export function resolveTeam(input: string): Team | undefined {
+  const q = normalize(input);
+  if (!q) return undefined;
+  return TEAMS.find(
+    (t) => normalize(t.code) === q || normalize(t.name) === q || t.aliases.some((a) => normalize(a) === q),
+  );
+}
+
+/** Teams whose code, name or alias contains the query, for slash-command autocomplete. */
+export function searchTeams(query: string): Team[] {
+  const q = normalize(query);
+  if (!q) return [...TEAMS];
+  const starts: Team[] = [];
+  const contains: Team[] = [];
+  for (const t of TEAMS) {
+    const fields = [t.code, t.name, ...t.aliases].map(normalize);
+    if (fields.some((f) => f.startsWith(q) || f.split(" ").some((w) => w.startsWith(q)))) starts.push(t);
+    else if (fields.some((f) => f.includes(q))) contains.push(t);
+  }
+  return [...starts, ...contains];
+}

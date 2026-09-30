@@ -11,11 +11,22 @@ A Discord bot that posts **confirmed** NHL trades, waiver moves and signings to 
 | Milestone | State |
 |---|---|
 | 1. Skeleton: Worker, D1 schema, `/ping` | ✅ Done |
-| 2. `/subscribe`, `/unsubscribe`, `/subscriptions` | ⏳ Next |
-| 3. Reddit source (dry-run logging) | ⬜ |
+| 2. `/subscribe`, `/unsubscribe`, `/subscriptions` | ✅ Done |
+| 3. Reddit source (dry-run logging) | ⏳ Next |
 | 4. Confirmed-only filter + classifier tests | ⬜ |
 | 5. Dedupe + posting embeds | ⬜ |
 | 6. Hardening (first-run backfill, rate limits) | ⬜ |
+
+## Commands
+
+| Command | Who can use it | What it does |
+|---|---|---|
+| `/subscribe team:<team> [trades] [waivers] [signings]` | Manage Server | Follow a team in this channel. Pick **⭐ All teams** to follow the whole league. Set a type to `False` to skip it; for example, `/subscribe team:Leafs waivers:False` posts only trades and signings. Running it again for the same team updates its types. |
+| `/unsubscribe team:<team>` | Manage Server | Stop following a team. Autocomplete lists only this channel's teams, plus **Remove all**. |
+| `/subscriptions` | Everyone | List what this channel follows. |
+| `/ping` | Everyone | Check the bot is online. |
+
+Subscriptions belong to a **channel**, so one server can have `#leafs-news` following Toronto and `#league-wide` following all teams. Replies are visible only to the person who ran the command. Server admins can change who is allowed to use each command in **Server Settings → Integrations**.
 
 ## How it works
 
@@ -80,8 +91,9 @@ curl "http://localhost:8787/__scheduled?cron=*/2+*+*+*+*"
 src/index.ts             Worker entry: fetch() for Discord, scheduled() for the cron
 src/discord/verify.ts    Ed25519 request signature check
 src/discord/commands.ts  Slash command definitions and handlers
-src/data/teams.ts        All 32 teams with headline aliases and colours
+src/data/teams.ts        All 32 teams with headline aliases, colours and lookup helpers
+src/db/subscriptions.ts  Subscription reads and writes (D1)
 migrations/              D1 schema
 scripts/                 One-off tools (command registration)
-test/                    Vitest tests
+test/                    Vitest tests (D1 is simulated with Node's built-in SQLite and the real migrations)
 ```

@@ -13,8 +13,23 @@ export const InteractionResponseType = {
   APPLICATION_COMMAND_AUTOCOMPLETE_RESULT: 8,
 } as const;
 
+export const OptionType = {
+  STRING: 3,
+  BOOLEAN: 5,
+} as const;
+
 /** Message flag: only the user who ran the command can see the reply. */
 export const EPHEMERAL = 1 << 6;
+
+/** Discord allows at most 25 autocomplete choices. */
+export const MAX_CHOICES = 25;
+
+export interface CommandOption {
+  name: string;
+  type: number;
+  value?: string | number | boolean;
+  focused?: boolean;
+}
 
 export interface Interaction {
   id: string;
@@ -23,8 +38,13 @@ export interface Interaction {
   channel_id?: string;
   data?: {
     name: string;
-    options?: { name: string; type: number; value?: string | number | boolean; focused?: boolean }[];
+    options?: CommandOption[];
   };
+}
+
+export interface Choice {
+  name: string;
+  value: string;
 }
 
 export interface InteractionResponse {
@@ -32,6 +52,6 @@ export interface InteractionResponse {
   data?: {
     content?: string;
     flags?: number;
-    choices?: { name: string; value: string }[];
+    choices?: Choice[];
   };
 }

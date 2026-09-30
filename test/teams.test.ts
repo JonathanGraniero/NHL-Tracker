@@ -21,3 +21,32 @@ describe("team data", () => {
     expect(getTeam("XYZ")).toBeUndefined();
   });
 });
+
+import { resolveTeam, searchTeams } from "../src/data/teams";
+
+describe("resolveTeam", () => {
+  it.each([
+    ["TOR", "TOR"],
+    ["toronto maple leafs", "TOR"],
+    ["Leafs", "TOR"],
+    ["Montreal", "MTL"],
+    ["Montréal Canadiens", "MTL"],
+    ["  habs ", "MTL"],
+  ])("%s → %s", (input, code) => {
+    expect(resolveTeam(input)?.code).toBe(code);
+  });
+
+  it("returns undefined for unknown or empty input", () => {
+    expect(resolveTeam("Nordiques")).toBeUndefined();
+    expect(resolveTeam("")).toBeUndefined();
+  });
+});
+
+describe("searchTeams", () => {
+  it("ranks prefix matches before substring matches", () => {
+    const codes = searchTeams("an").map((t) => t.code);
+    expect(codes[0]).toBe("ANA");
+    expect(codes).toContain("VAN"); // "vancouver" contains "an" but doesn't start with it
+    expect(codes.indexOf("ANA")).toBeLessThan(codes.indexOf("VAN"));
+  });
+});
