@@ -3,3 +3,8 @@ node_modules/
 .dev.vars
 .env
 dist/
+infra/.terraform/
+infra/*.tfstate
+infra/*.tfstate.*
+infra/tfplan
+infra/*_override.tf
