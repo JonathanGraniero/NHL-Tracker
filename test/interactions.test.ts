@@ -30,7 +30,7 @@ describe("interactions endpoint", () => {
   });
 
   it("rejects missing signature headers", async () => {
-    const res = await worker.fetch(new Request("https://bot.example/interactions", { method: "POST", body: "{}" }), bot.env);
+    const res = await worker.fetch(new Request("https://bot.example/interactions", { method: "POST", body: "{}" }), bot.env, bot.ctx);
     expect(res.status).toBe(401);
   });
 
@@ -40,11 +40,11 @@ describe("interactions endpoint", () => {
       headers: { "X-Signature-Ed25519": "not-hex", "X-Signature-Timestamp": "1" },
       body: "{}",
     });
-    expect((await worker.fetch(req, bot.env)).status).toBe(401);
+    expect((await worker.fetch(req, bot.env, bot.ctx)).status).toBe(401);
   });
 
   it("returns 404 for other paths", async () => {
-    const res = await worker.fetch(new Request("https://bot.example/nope", { method: "POST" }), bot.env);
+    const res = await worker.fetch(new Request("https://bot.example/nope", { method: "POST" }), bot.env, bot.ctx);
     expect(res.status).toBe(404);
   });
 });

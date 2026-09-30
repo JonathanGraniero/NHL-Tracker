@@ -57,20 +57,23 @@ export async function listForChannel(db: D1Database, channelId: string): Promise
 /**
  * Channels that should receive a transaction of `type` involving any of
  * `teamCodes`, including channels following all teams. Used when posting.
+ * With `guildId`, only that server's channels.
  */
 export async function findChannelsFor(
   db: D1Database,
   teamCodes: readonly string[],
   type: TransactionType,
+  guildId?: string,
 ): Promise<string[]> {
   const codes = [...new Set([...teamCodes, ALL_TEAMS])];
   const { results } = await db
     .prepare(
       `SELECT DISTINCT channel_id FROM subscriptions
        WHERE team_code IN (${codes.map(() => "?").join(", ")})
-         AND (',' || types || ',') LIKE ?`,
+         AND (',' || types || ',') LIKE ?
+         ${guildId ? "AND guild_id = ?" : ""}`,
     )
-    .bind(...codes, `%,${type},%`)
+    .bind(...codes, `%,${type},%`, ...(guildId ? [guildId] : []))
     .all<{ channel_id: string }>();
   return results.map((r) => r.channel_id);
 }

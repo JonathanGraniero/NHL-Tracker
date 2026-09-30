@@ -12,10 +12,10 @@ A Discord bot that posts **confirmed** NHL trades, waiver moves and signings to 
 |---|---|
 | 1. Skeleton: Worker, D1 schema, `/ping` | ✅ Done |
 | 2. `/subscribe`, `/unsubscribe`, `/subscriptions` | ✅ Done |
-| 3. Reddit source (dry-run logging) | ⏳ Next |
-| 4. Confirmed-only filter + classifier tests | ⬜ |
-| 5. Dedupe + posting embeds | ⬜ |
-| 6. Hardening (first-run backfill, rate limits) | ⬜ |
+| 3. Reddit source | ✅ Done |
+| 4. Confirmed-only filter + classifier tests | ✅ Done |
+| 5. Dedupe + posting embeds, `/replay` | ✅ Done |
+| 6. Hardening (first-run backfill ✅, Reddit rate limits ✅, more sources) | ⏳ Next |
 
 ## Commands
 
@@ -24,6 +24,7 @@ A Discord bot that posts **confirmed** NHL trades, waiver moves and signings to 
 | `/subscribe team:<team> [trades] [waivers] [signings]` | Manage Server | Follow a team in this channel. Pick **⭐ All teams** to follow the whole league. Set a type to `False` to skip it; for example, `/subscribe team:Leafs waivers:False` posts only trades and signings. Running it again for the same team updates its types. |
 | `/unsubscribe team:<team>` | Manage Server | Stop following a team. Autocomplete lists only this channel's teams, plus **Remove all**. |
 | `/subscriptions` | Everyone | List what this channel follows. |
+| `/replay post:<link>` | Manage Server | Run an r/hockey post through the filter. If it's a confirmed move, post it to this server's subscribed channels (even if it's old), otherwise say why not. Handy for testing a new channel. |
 | `/ping` | Everyone | Check the bot is online. |
 
 Subscriptions belong to a **channel**, so one server can have `#leafs-news` following Toronto and `#league-wide` following all teams. Replies are visible only to the person who ran the command. Server admins can change who is allowed to use each command in **Server Settings → Integrations**.
@@ -31,9 +32,28 @@ Subscriptions belong to a **channel**, so one server can have `#leafs-news` foll
 ## How it works
 
 ```
-Cron (every 2 min) ──► scheduled()  → fetch news → filter → dedupe → post
+Cron (every 2 min) ──► scheduled()  → fetch r/hockey → filter → dedupe → post
 Discord command    ──► fetch() /interactions → verify signature → handle
 ```
+
+Every 2 minutes the Worker reads the newest 100 posts on r/hockey through its RSS feed. Reddit blocks its JSON API from Workers, and the RSS rate limit is shared across Cloudflare's IPs, so a `429` is expected now and then; the next run catches up. The very first run only marks the existing posts as seen, so a new install doesn't post a backlog, and posts older than 6 hours are never posted.
+
+### What counts as confirmed
+
+A post is posted only if **all** of these hold (see [`src/news/classify.ts`](src/news/classify.ts) and its tests, which use real r/hockey titles):
+
+1. **Trusted source:** a `[Tag]` naming a trusted insider (Friedman, LeBrun, Johnston, Dreger, McKenzie, Seravalli, Kaplan, PuckPedia, NHL PR) or a team, or a link to nhl.com or to one of those insiders' tweets.
+2. **No hedging** up to the sentence that states the move: "not a done deal", "closing in", "nearing", "expected", "talks", "rework", questions, and so on.
+3. **Completed-move wording:** *acquired*, *traded*, *in exchange for*, the `Team: players / Team: players` format (trades); *claimed off waivers*, *placed on waivers* (waivers); *signed*, *agreed to terms*, *extension* (signings).
+4. **An NHL team** is named (or is in the nhl.com link), and it's a player move: coaches, GMs, PTOs and AHL/KHL contracts are skipped.
+
+For the Knies–Marchenko trade, LeBrun's "proposed … not a done deal yet" and Friedman's "rework the trade" were skipped, and Friedman's `Columbus: Knies, Lorentz, Andrae and a 2nd / Tor: Marchenko, Miles Wood, Merzlikins` was posted.
+
+### No duplicates
+
+1. **Source item:** each Reddit post is processed once.
+2. **Event:** later reports of the same move within 48 hours (same two teams in a trade; same team and player for waivers and signings) are recognized as the same event.
+3. **Channel:** an event is posted to a channel at most once. If a run dies partway through posting, the next run finishes only the channels that are missing.
 
 ## Setup
 
@@ -99,6 +119,12 @@ src/discord/verify.ts    Ed25519 request signature check
 src/discord/commands.ts  Slash command definitions and handlers
 src/data/teams.ts        All 32 teams with headline aliases, colours and lookup helpers
 src/db/subscriptions.ts  Subscription reads and writes (D1)
+src/db/events.ts         Seen items, events and posted messages (the three dedupe layers)
+src/sources/reddit.ts    r/hockey RSS fetch and parse
+src/news/classify.ts     Confirmed-only filter: source, wording, type, teams
+src/news/pipeline.ts     Scan → classify → dedupe → post
+src/news/embed.ts        The Discord embed for a move
+src/discord/api.ts       Outgoing Discord REST calls
 migrations/              D1 schema
 scripts/                 One-off tools (command registration)
 infra/                   Terraform: D1, Worker, cron, workers.dev route
