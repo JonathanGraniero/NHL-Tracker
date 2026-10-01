@@ -64,6 +64,14 @@ const WAIVER =
   /\b(claim(s|ed)?|claiming)\b.*\bwaivers\b|\b(placed|placing|places|put|puts|putting)\b.*\bon waivers\b|\bclear(s|ed)? waivers\b|\bwaived\b|\bon waivers\b/i;
 const TRADE = /\b(acquire[sd]?|acquiring|traded|in exchange for|trade (is )?(done|complete|official))\b/i;
 const SIGNING = /\b(sign(s|ed)?|re-sign(s|ed)?|ink(s|ed)?|agreed? to (terms|an?)|extended|extension)\b/i;
+/**
+ * "Anaheim is extending Luneau 6 x $7.2M AAV": insiders report finished deals
+ * in the present tense too. Without exact terms that wording can still mean
+ * talks, so it only counts alongside CONTRACT_TERMS.
+ */
+const SIGNING_IN_PROGRESS = /\b(is|are)\s+(extending|re-signing|signing)\b/i;
+/** "6 x $7.2M", "$7.2M AAV", "4-year, $5 million". */
+const CONTRACT_TERMS = /\b\d+\s*[x×]\s*\$?\d|\$\d[\d.,]*\s*(k|m|mil|million)?\s+AAV\b|\b\d+[- ]years?,?\s+\$\d/i;
 
 /** Uppercase short forms that aren't team codes. */
 const EXTRA_ABBREVIATIONS: Record<string, string> = { NJ: "NJD", TB: "TBL", LA: "LAK", SJ: "SJS", LV: "VGK" };
@@ -155,7 +163,8 @@ function trustedSource(tag: string | undefined, links: readonly string[]): strin
 function transactionType(text: string, teams: readonly Team[]): TransactionType | undefined {
   if (WAIVER.test(text)) return "waiver";
   if (TRADE.test(text) || isTwoSidedTrade(text)) return "trade";
-  if (SIGNING.test(text) && teams.length > 0) return "signing";
+  const signing = SIGNING.test(text) || (SIGNING_IN_PROGRESS.test(text) && CONTRACT_TERMS.test(text));
+  if (signing && teams.length > 0) return "signing";
   return undefined;
 }
 

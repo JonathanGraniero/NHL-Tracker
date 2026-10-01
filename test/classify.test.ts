@@ -20,6 +20,9 @@ describe("confirmed moves", () => {
     ["Dallas Stars sign Goaltender Casey DeSmith to a two-year, $5 million contract extension (2x$2.5m AAV)", NHL("stars"), "signing", ["DAL"], "NHL.com"],
     ["We have signed Noah Ostlund to an eight-year contract extension with an AAV of $6.6 million.", NHL("sabres"), "signing", ["BUF"], "NHL.com"],
     ["Leafs acquire forward from Ottawa", TWEET("PierreVLeBrun"), "trade", ["TOR", "OTT"], "Pierre LeBrun"],
+    // Present tense, but with the exact terms it's a done deal (missed on 2026-10-01).
+    ["[Friedman] Anaheim is extending young D Tristan Luneau 6 x $7.2M AAV", [], "signing", ["ANA"], "Elliotte Friedman"],
+    ["[Johnston] The Rangers are re-signing Adam Edstrom to a 2-year, $1.8M deal", [], "signing", ["NYR"], "Chris Johnston"],
   ])("%s", (title, links, type, teams, source) => {
     expect(classify({ title, links })).toMatchObject({ confirmed: true, type, teams, source });
   });
@@ -44,6 +47,8 @@ describe("not posted", () => {
     ["[Kaplan]: The Vegas Golden Knights are closing in on a contract extension with William Karlsson, sources told ESPN.", [], "not confirmed yet"],
     ["[Friedman] Sources: Senators nearing eight-year contract extension with Drake Batherson", [], "not confirmed yet"],
     ["[Friedman] Ducks, Kreider expected to agree to waivers for contract termination", [], "not confirmed yet"],
+    // Present tense without terms can still mean talks.
+    ["[Friedman] Anaheim is extending young D Tristan Luneau", [], "no completed"],
     ["[32 Thoughts] Potential three-way trade involving Nikishin and Hellebuyck?", [], "not from a trusted"],
     // Not player moves, or not NHL.
     ["[Kaplan] Bill Guerin has signed a multi-year contract extension as GM of the Minnesota Wild, sources told ESPN", [], "not an NHL player move"],
