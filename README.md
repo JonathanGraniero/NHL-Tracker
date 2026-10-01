@@ -16,15 +16,17 @@ A Discord bot that posts **confirmed** NHL trades, waiver moves and signings to 
 | 4. Confirmed-only filter + classifier tests | ✅ Done |
 | 5. Dedupe + posting embeds, `/replay` | ✅ Done |
 | 6. Hardening (first-run backfill ✅, Reddit rate limits ✅, more sources) | ⏳ Next |
+| 7. Daily games and broadcasts: `/games`, morning post | ✅ Done |
 
 ## Commands
 
 | Command | Who can use it | What it does |
 |---|---|---|
-| `/subscribe team:<team> [trades] [waivers] [signings]` | Manage Server | Follow a team in this channel. Pick **⭐ All teams** to follow the whole league. Set a type to `False` to skip it; for example, `/subscribe team:Leafs waivers:False` posts only trades and signings. Running it again for the same team updates its types. |
+| `/subscribe team:<team> [trades] [waivers] [signings] [games]` | Manage Server | Follow a team in this channel. Pick **⭐ All teams** to follow the whole league. Set a type to `False` to skip it; for example, `/subscribe team:Leafs waivers:False` posts only trades and signings. `games:True` adds a morning post of the day's games and where they're on TV (off by default). Running it again for the same team updates its types. |
 | `/unsubscribe team:<team>` | Manage Server | Stop following a team. Autocomplete lists only this channel's teams, plus **Remove all**. |
 | `/subscriptions` | Everyone | List what this channel follows. |
 | `/replay post:<link>` | Manage Server | Run an r/hockey post through the filter. If it's a confirmed move, post it to this server's subscribed channels (even if it's old), otherwise say why not. Handy for testing a new channel. |
+| `/games [day] [team]` | Everyone | A day's games (today by default) with start times in your time zone and the US/Canadian TV networks. Visible to the whole channel. Also works in DMs. |
 | `/ping` | Everyone | Check the bot is online. |
 
 Subscriptions belong to a **channel**, so one server can have `#leafs-news` following Toronto and `#league-wide` following all teams. Replies are visible only to the person who ran the command. Server admins can change who is allowed to use each command in **Server Settings → Integrations**.
@@ -33,6 +35,7 @@ Subscriptions belong to a **channel**, so one server can have `#leafs-news` foll
 
 ```
 Cron (every 2 min) ──► scheduled()  → fetch r/hockey → filter → dedupe → post
+Cron (daily 15:00Z) ──► scheduled()  → NHL schedule → post today's games to subscribed channels
 Discord command    ──► fetch() /interactions → verify signature → handle
 ```
 
@@ -54,6 +57,12 @@ For the Knies–Marchenko trade, LeBrun's "proposed … not a done deal yet" and
 1. **Source item:** each Reddit post is processed once.
 2. **Event:** later reports of the same move within 48 hours (same two teams in a trade; same team and player for waivers and signings) are recognized as the same event.
 3. **Channel:** an event is posted to a channel at most once. If a run dies partway through posting, the next run finishes only the channels that are missing.
+
+### Daily games
+
+Channels that subscribe with `games:True` get the day's games every morning at 15:00 UTC (11 am Eastern in summer, 10 am in winter). A channel following ⭐ All teams gets the whole slate; one following specific teams gets only their games, and nothing on days they don't play. The schedule comes from NHL.com's public API, which groups games by Eastern date, so a 10 pm Pacific game is part of "today" even though it starts after midnight UTC.
+
+Each line has the start time (a Discord timestamp, so everyone sees their own time zone), the matchup linking to NHL.com's Game Center, national networks for the US and Canada, and up to three regional networks. A `daily_posts` row per day and channel means a rerun never posts twice, and if NHL.com is down at 15:00 the 2-minute cron retries until 18:00 UTC.
 
 ## Setup
 
@@ -125,6 +134,10 @@ src/news/classify.ts     Confirmed-only filter: source, wording, type, teams
 src/news/pipeline.ts     Scan → classify → dedupe → post
 src/news/embed.ts        The Discord embed for a move
 src/discord/api.ts       Outgoing Discord REST calls
+src/sources/nhl.ts       NHL.com schedule API: games, broadcasts, Eastern dates
+src/games/format.ts      The schedule embed
+src/games/daily.ts       The daily schedule post (once per day and channel, retried if NHL.com is down)
+src/db/daily.ts          Which channels already got each day's schedule
 migrations/              D1 schema
 scripts/                 One-off tools (command registration)
 infra/                   Terraform: D1, Worker, cron, workers.dev route

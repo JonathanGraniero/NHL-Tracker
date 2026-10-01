@@ -1,0 +1,2260 @@
+{
+  "nextStartDate": "2026-10-14",
+  "previousStartDate": "2026-09-30",
+  "gameWeek": [
+    {
+      "date": "2026-10-07",
+      "dayAbbrev": "WED",
+      "numberOfGames": 3,
+      "games": [
+        {
+          "id": 2026020053,
+          "season": 20262027,
+          "gameType": 2,
+          "gameState": "FUT",
+          "gameScheduleState": "OK",
+          "startTimeUTC": "2026-10-07T23:30:00Z",
+          "easternUTCOffset": "-04:00",
+          "venue": {
+            "default": "Capital One Arena"
+          },
+          "awayTeam": {
+            "abbrev": "PIT"
+          },
+          "homeTeam": {
+            "abbrev": "WSH"
+          },
+          "tvBroadcasts": [
+            {
+              "id": 385,
+              "market": "N",
+              "countryCode": "US",
+              "network": "TNT",
+              "sequenceNumber": 11
+            },
+            {
+              "id": 578,
+              "market": "N",
+              "countryCode": "US",
+              "network": "HBO MAX",
+              "sequenceNumber": 19
+            }
+          ],
+          "gameCenterLink": "/gamecenter/pit-vs-wsh/2026/10/07/2026020053"
+        },
+        {
+          "id": 2026020054,
+          "season": 20262027,
+          "gameType": 2,
+          "gameState": "FUT",
+          "gameScheduleState": "OK",
+          "startTimeUTC": "2026-10-07T23:30:00Z",
+          "easternUTCOffset": "-04:00",
+          "venue": {
+            "default": "Canada Life Centre"
+          },
+          "awayTeam": {
+            "abbrev": "COL"
+          },
+          "homeTeam": {
+            "abbrev": "WPG"
+          },
+          "tvBroadcasts": [
+            {
+              "id": 548,
+              "market": "N",
+              "countryCode": "CA",
+              "network": "Prime",
+              "sequenceNumber": 116
+            },
+            {
+              "id": 2,
+              "market": "A",
+              "countryCode": "US",
+              "network": "ALT",
+              "sequenceNumber": 385
+            }
+          ],
+          "gameCenterLink": "/gamecenter/col-vs-wpg/2026/10/07/2026020054"
+        },
+        {
+          "id": 2026020055,
+          "season": 20262027,
+          "gameType": 2,
+          "gameState": "FUT",
+          "gameScheduleState": "OK",
+          "startTimeUTC": "2026-10-08T02:00:00Z",
+          "easternUTCOffset": "-04:00",
+          "venue": {
+            "default": "Honda Center"
+          },
+          "awayTeam": {
+            "abbrev": "EDM"
+          },
+          "homeTeam": {
+            "abbrev": "ANA"
+          },
+          "tvBroadcasts": [
+            {
+              "id": 289,
+              "market": "A",
+              "countryCode": "CA",
+              "network": "SNW",
+              "sequenceNumber": 34
+            },
+            {
+              "id": 652,
+              "market": "H",
+              "countryCode": "US",
+              "network": "Prime Video",
+              "sequenceNumber": 117
+            },
+            {
+              "id": 219,
+              "market": "H",
+              "countryCode": "US",
+              "network": "KCOP-13",
+              "sequenceNumber": 656
+            }
+          ],
+          "gameCenterLink": "/gamecenter/edm-vs-ana/2026/10/07/2026020055"
+        }
+      ]
+    },
+    {
+      "date": "2026-10-08",
+      "dayAbbrev": "THU",
+      "numberOfGames": 10,
+      "games": [
+        {
+          "id": 2026020056,
+          "season": 20262027,
+          "gameType": 2,
+          "gameState": "FUT",
+          "gameScheduleState": "OK",
+          "startTimeUTC": "2026-10-08T23:00:00Z",
+          "easternUTCOffset": "-04:00",
+          "venue": {
+            "default": "TD Garden"
+          },
+          "awayTeam": {
+            "abbrev": "UTA"
+          },
+          "homeTeam": {
+            "abbrev": "BOS"
+          },
+          "tvBroadcasts": [
+            {
+              "id": 558,
+              "market": "A",
+              "countryCode": "US",
+              "network": "Utah16",
+              "sequenceNumber": 381
+            },
+            {
+              "id": 31,
+              "market": "H",
+              "countryCode": "US",
+              "network": "NESN",
+              "sequenceNumber": 405
+            }
+          ],
+          "gameCenterLink": "/gamecenter/uta-vs-bos/2026/10/08/2026020056"
+        },
+        {
+          "id": 2026020057,
+          "season": 20262027,
+          "gameType": 2,
+          "gameState": "FUT",
+          "gameScheduleState": "OK",
+          "startTimeUTC": "2026-10-08T23:00:00Z",
+          "easternUTCOffset": "-04:00",
+          "venue": {
+            "default": "KeyBank Center"
+          },
+          "awayTeam": {
+            "abbrev": "DAL"
+          },
+          "homeTeam": {
+            "abbrev": "BUF"
+          },
+          "tvBroadcasts": [
+            {
+              "id": 652,
+              "market": "A",
+              "countryCode": "US",
+              "network": "Prime Video",
+              "sequenceNumber": 117
+            },
+            {
+              "id": 28,
+              "market": "H",
+              "countryCode": "US",
+              "network": "MSG-B",
+              "sequenceNumber": 392
+            }
+          ],
+          "gameCenterLink": "/gamecenter/dal-vs-buf/2026/10/08/2026020057"
+        },
+        {
+          "id": 2026020058,
+          "season": 20262027,
+          "gameType": 2,
+          "gameState": "FUT",
+          "gameScheduleState": "OK",
+          "startTimeUTC": "2026-10-08T23:00:00Z",
+          "easternUTCOffset": "-04:00",
+          "venue": {
+            "default": "Centre Bell"
+          },
+          "awayTeam": {
+            "abbrev": "NSH"
+          },
+          "homeTeam": {
+            "abbrev": "MTL"
+          },
+          "tvBroadcasts": [
+            {
+              "id": 131,
+              "market": "H",
+              "countryCode": "CA",
+              "network": "TSN2",
+              "sequenceNumber": 112
+            },
+            {
+              "id": 33,
+              "market": "H",
+              "countryCode": "CA",
+              "network": "RDS",
+              "sequenceNumber": 145
+            },
+            {
+              "id": 521,
+              "market": "A",
+              "countryCode": "US",
+              "network": "SCRIPPS",
+              "sequenceNumber": 657
+            }
+          ],
+          "gameCenterLink": "/gamecenter/nsh-vs-mtl/2026/10/08/2026020058"
+        },
+        {
+          "id": 2026020059,
+          "season": 20262027,
+          "gameType": 2,
+          "gameState": "FUT",
+          "gameScheduleState": "OK",
+          "startTimeUTC": "2026-10-08T23:00:00Z",
+          "easternUTCOffset": "-04:00",
+          "venue": {
+            "default": "Canadian Tire Centre"
+          },
+          "awayTeam": {
+            "abbrev": "PHI"
+          },
+          "homeTeam": {
+            "abbrev": "OTT"
+          },
+          "tvBroadcasts": [
+            {
+              "id": 294,
+              "market": "H",
+              "countryCode": "CA",
+              "network": "TSN5",
+              "sequenceNumber": 135
+            },
+            {
+              "id": 242,
+              "market": "H",
+              "countryCode": "CA",
+              "network": "RDSI",
+              "sequenceNumber": 147
+            },
+            {
+              "id": 322,
+              "market": "A",
+              "countryCode": "US",
+              "network": "NBCSP",
+              "sequenceNumber": 389
+            }
+          ],
+          "gameCenterLink": "/gamecenter/phi-vs-ott/2026/10/08/2026020059"
+        },
+        {
+          "id": 2026020060,
+          "season": 20262027,
+          "gameType": 2,
+          "gameState": "FUT",
+          "gameScheduleState": "OK",
+          "startTimeUTC": "2026-10-08T23:00:00Z",
+          "easternUTCOffset": "-04:00",
+          "venue": {
+            "default": "Benchmark International Arena"
+          },
+          "awayTeam": {
+            "abbrev": "MIN"
+          },
+          "homeTeam": {
+            "abbrev": "TBL"
+          },
+          "tvBroadcasts": [
+            {
+              "id": 648,
+              "market": "A",
+              "countryCode": "US",
+              "network": "MINNHL",
+              "sequenceNumber": 1
+            },
+            {
+              "id": 758,
+              "market": "A",
+              "countryCode": "US",
+              "network": "Wild+",
+              "sequenceNumber": 1
+            },
+            {
+              "id": 581,
+              "market": "H",
+              "countryCode": "US",
+              "network": "The Spot",
+              "sequenceNumber": 211
+            }
+          ],
+          "gameCenterLink": "/gamecenter/min-vs-tbl/2026/10/08/2026020060"
+        },
+        {
+          "id": 2026020061,
+          "season": 20262027,
+          "gameType": 2,
+          "gameState": "FUT",
+          "gameScheduleState": "OK",
+          "startTimeUTC": "2026-10-08T23:00:00Z",
+          "easternUTCOffset": "-04:00",
+          "venue": {
+            "default": "Lenovo Center"
+          },
+          "awayTeam": {
+            "abbrev": "VAN"
+          },
+          "homeTeam": {
+            "abbrev": "CAR"
+          },
+          "tvBroadcasts": [
+            {
+              "id": 646,
+              "market": "H",
+              "countryCode": "US",
+              "network": "CARNHL",
+              "sequenceNumber": 1
+            },
+            {
+              "id": 754,
+              "market": "H",
+              "countryCode": "US",
+              "network": "HHN",
+              "sequenceNumber": 1
+            },
+            {
+              "id": 290,
+              "market": "N",
+              "countryCode": "CA",
+              "network": "SNP",
+              "sequenceNumber": 33
+            }
+          ],
+          "gameCenterLink": "/gamecenter/van-vs-car/2026/10/08/2026020061"
+        },
+        {
+          "id": 2026020062,
+          "season": 20262027,
+          "gameType": 2,
+          "gameState": "FUT",
+          "gameScheduleState": "OK",
+          "startTimeUTC": "2026-10-08T23:30:00Z",
+          "easternUTCOffset": "-04:00",
+          "venue": {
+            "default": "UBS Arena"
+          },
+          "awayTeam": {
+            "abbrev": "CHI"
+          },
+          "homeTeam": {
+            "abbrev": "NYI"
+          },
+          "tvBroadcasts": [
+            {
+              "id": 551,
+              "market": "A",
+              "countryCode": "US",
+              "network": "CHSN",
+              "sequenceNumber": 254
+            },
+            {
+              "id": 409,
+              "market": "H",
+              "countryCode": "US",
+              "network": "MSGSN",
+              "sequenceNumber": 411
+            }
+          ],
+          "gameCenterLink": "/gamecenter/chi-vs-nyi/2026/10/08/2026020062"
+        },
+        {
+          "id": 2026020063,
+          "season": 20262027,
+          "gameType": 2,
+          "gameState": "FUT",
+          "gameScheduleState": "OK",
+          "startTimeUTC": "2026-10-09T00:00:00Z",
+          "easternUTCOffset": "-04:00",
+          "venue": {
+            "default": "Enterprise Center"
+          },
+          "awayTeam": {
+            "abbrev": "SJS"
+          },
+          "homeTeam": {
+            "abbrev": "STL"
+          },
+          "tvBroadcasts": [
+            {
+              "id": 329,
+              "market": "N",
+              "countryCode": "US",
+              "network": "ESPN+",
+              "sequenceNumber": 16
+            },
+            {
+              "id": 391,
+              "market": "N",
+              "countryCode": "US",
+              "network": "HULU",
+              "sequenceNumber": 17
+            },
+            {
+              "id": 574,
+              "market": "N",
+              "countryCode": "US",
+              "network": "Disney+",
+              "sequenceNumber": 21
+            },
+            {
+              "id": 549,
+              "market": "N",
+              "countryCode": "CA",
+              "network": "SN+",
+              "sequenceNumber": 117
+            }
+          ],
+          "gameCenterLink": "/gamecenter/sjs-vs-stl/2026/10/08/2026020063"
+        },
+        {
+          "id": 2026020064,
+          "season": 20262027,
+          "gameType": 2,
+          "gameState": "FUT",
+          "gameScheduleState": "OK",
+          "startTimeUTC": "2026-10-09T01:00:00Z",
+          "easternUTCOffset": "-04:00",
+          "venue": {
+            "default": "Scotiabank Saddledome"
+          },
+          "awayTeam": {
+            "abbrev": "COL"
+          },
+          "homeTeam": {
+            "abbrev": "CGY"
+          },
+          "tvBroadcasts": [
+            {
+              "id": 289,
+              "market": "N",
+              "countryCode": "CA",
+              "network": "SNW",
+              "sequenceNumber": 34
+            },
+            {
+              "id": 2,
+              "market": "A",
+              "countryCode": "US",
+              "network": "ALT",
+              "sequenceNumber": 385
+            },
+            {
+              "id": 336,
+              "market": "A",
+              "countryCode": "US",
+              "network": "KTVD",
+              "sequenceNumber": 623
+            }
+          ],
+          "gameCenterLink": "/gamecenter/col-vs-cgy/2026/10/08/2026020064"
+        },
+        {
+          "id": 2026020065,
+          "season": 20262027,
+          "gameType": 2,
+          "gameState": "FUT",
+          "gameScheduleState": "OK",
+          "startTimeUTC": "2026-10-09T02:00:00Z",
+          "easternUTCOffset": "-04:00",
+          "venue": {
+            "default": "T-Mobile Arena"
+          },
+          "awayTeam": {
+            "abbrev": "TOR"
+          },
+          "homeTeam": {
+            "abbrev": "VGK"
+          },
+          "tvBroadcasts": [
+            {
+              "id": 293,
+              "market": "A",
+              "countryCode": "CA",
+              "network": "TSN4",
+              "sequenceNumber": 137
+            },
+            {
+              "id": 521,
+              "market": "H",
+              "countryCode": "US",
+              "network": "SCRIPPS",
+              "sequenceNumber": 657
+            }
+          ],
+          "gameCenterLink": "/gamecenter/tor-vs-vgk/2026/10/08/2026020065"
+        }
+      ]
+    },
+    {
+      "date": "2026-10-09",
+      "dayAbbrev": "FRI",
+      "numberOfGames": 4,
+      "games": [
+        {
+          "id": 2026020066,
+          "season": 20262027,
+          "gameType": 2,
+          "gameState": "FUT",
+          "gameScheduleState": "OK",
+          "startTimeUTC": "2026-10-09T23:00:00Z",
+          "easternUTCOffset": "-04:00",
+          "venue": {
+            "default": "Little Caesars Arena"
+          },
+          "awayTeam": {
+            "abbrev": "SEA"
+          },
+          "homeTeam": {
+            "abbrev": "DET"
+          },
+          "tvBroadcasts": [
+            {
+              "id": 645,
+              "market": "H",
+              "countryCode": "US",
+              "network": "DSN",
+              "sequenceNumber": 1
+            },
+            {
+              "id": 652,
+              "market": "A",
+              "countryCode": "US",
+              "network": "Prime Video",
+              "sequenceNumber": 117
+            },
+            {
+              "id": 387,
+              "market": "A",
+              "countryCode": "US",
+              "network": "KING",
+              "sequenceNumber": 615
+            },
+            {
+              "id": 388,
+              "market": "A",
+              "countryCode": "US",
+              "network": "KONG",
+              "sequenceNumber": 654
+            }
+          ],
+          "gameCenterLink": "/gamecenter/sea-vs-det/2026/10/09/2026020066"
+        },
+        {
+          "id": 2026020067,
+          "season": 20262027,
+          "gameType": 2,
+          "gameState": "FUT",
+          "gameScheduleState": "OK",
+          "startTimeUTC": "2026-10-09T23:00:00Z",
+          "easternUTCOffset": "-04:00",
+          "venue": {
+            "default": "Capital One Arena"
+          },
+          "awayTeam": {
+            "abbrev": "NYR"
+          },
+          "homeTeam": {
+            "abbrev": "WSH"
+          },
+          "tvBroadcasts": [
+            {
+              "id": 324,
+              "market": "N",
+              "countryCode": "US",
+              "network": "NHLN",
+              "sequenceNumber": 35
+            },
+            {
+              "id": 517,
+              "market": "H",
+              "countryCode": "US",
+              "network": "MNMT",
+              "sequenceNumber": 396
+            },
+            {
+              "id": 27,
+              "market": "A",
+              "countryCode": "US",
+              "network": "MSG",
+              "sequenceNumber": 417
+            }
+          ],
+          "gameCenterLink": "/gamecenter/nyr-vs-wsh/2026/10/09/2026020067"
+        },
+        {
+          "id": 2026020068,
+          "season": 20262027,
+          "gameType": 2,
+          "gameState": "FUT",
+          "gameScheduleState": "OK",
+          "startTimeUTC": "2026-10-09T23:00:00Z",
+          "easternUTCOffset": "-04:00",
+          "venue": {
+            "default": "Nationwide Arena"
+          },
+          "awayTeam": {
+            "abbrev": "PIT"
+          },
+          "homeTeam": {
+            "abbrev": "CBJ"
+          },
+          "tvBroadcasts": [
+            {
+              "id": 647,
+              "market": "H",
+              "countryCode": "US",
+              "network": "CBJNHL",
+              "sequenceNumber": 1
+            },
+            {
+              "id": 755,
+              "market": "H",
+              "countryCode": "US",
+              "network": "CBJHN",
+              "sequenceNumber": 1
+            },
+            {
+              "id": 549,
+              "market": "N",
+              "countryCode": "CA",
+              "network": "SN+",
+              "sequenceNumber": 117
+            },
+            {
+              "id": 281,
+              "market": "N",
+              "countryCode": "CA",
+              "network": "TVAS",
+              "sequenceNumber": 120
+            },
+            {
+              "id": 528,
+              "market": "A",
+              "countryCode": "US",
+              "network": "SN-PIT",
+              "sequenceNumber": 384
+            }
+          ],
+          "gameCenterLink": "/gamecenter/pit-vs-cbj/2026/10/09/2026020068"
+        },
+        {
+          "id": 2026020069,
+          "season": 20262027,
+          "gameType": 2,
+          "gameState": "FUT",
+          "gameScheduleState": "OK",
+          "startTimeUTC": "2026-10-10T00:00:00Z",
+          "easternUTCOffset": "-04:00",
+          "venue": {
+            "default": "Canada Life Centre"
+          },
+          "awayTeam": {
+            "abbrev": "ANA"
+          },
+          "homeTeam": {
+            "abbrev": "WPG"
+          },
+          "tvBroadcasts": [
+            {
+              "id": 284,
+              "market": "N",
+              "countryCode": "CA",
+              "network": "SN1",
+              "sequenceNumber": 113
+            },
+            {
+              "id": 652,
+              "market": "A",
+              "countryCode": "US",
+              "network": "Prime Video",
+              "sequenceNumber": 117
+            },
+            {
+              "id": 219,
+              "market": "A",
+              "countryCode": "US",
+              "network": "KCOP-13",
+              "sequenceNumber": 656
+            }
+          ],
+          "gameCenterLink": "/gamecenter/ana-vs-wpg/2026/10/09/2026020069"
+        }
+      ]
+    },
+    {
+      "date": "2026-10-10",
+      "dayAbbrev": "SAT",
+      "numberOfGames": 14,
+      "games": [
+        {
+          "id": 2026020070,
+          "season": 20262027,
+          "gameType": 2,
+          "gameState": "FUT",
+          "gameScheduleState": "OK",
+          "startTimeUTC": "2026-10-10T17:00:00Z",
+          "easternUTCOffset": "-04:00",
+          "venue": {
+            "default": "TD Garden"
+          },
+          "awayTeam": {
+            "abbrev": "PHI"
+          },
+          "homeTeam": {
+            "abbrev": "BOS"
+          },
+          "tvBroadcasts": [
+            {
+              "id": 282,
+              "market": "N",
+              "countryCode": "CA",
+              "network": "SN",
+              "sequenceNumber": 21
+            },
+            {
+              "id": 324,
+              "market": "N",
+              "countryCode": "US",
+              "network": "NHLN",
+              "sequenceNumber": 35
+            },
+            {
+              "id": 281,
+              "market": "N",
+              "countryCode": "CA",
+              "network": "TVAS",
+              "sequenceNumber": 120
+            },
+            {
+              "id": 322,
+              "market": "A",
+              "countryCode": "US",
+              "network": "NBCSP",
+              "sequenceNumber": 389
+            },
+            {
+              "id": 31,
+              "market": "H",
+              "countryCode": "US",
+              "network": "NESN",
+              "sequenceNumber": 405
+            }
+          ],
+          "gameCenterLink": "/gamecenter/phi-vs-bos/2026/10/10/2026020070"
+        },
+        {
+          "id": 2026020071,
+          "season": 20262027,
+          "gameType": 2,
+          "gameState": "FUT",
+          "gameScheduleState": "OK",
+          "startTimeUTC": "2026-10-10T19:30:00Z",
+          "easternUTCOffset": "-04:00",
+          "venue": {
+            "default": "Prudential Center"
+          },
+          "awayTeam": {
+            "abbrev": "VAN"
+          },
+          "homeTeam": {
+            "abbrev": "NJD"
+          },
+          "tvBroadcasts": [
+            {
+              "id": 282,
+              "market": "N",
+              "countryCode": "CA",
+              "network": "SN",
+              "sequenceNumber": 21
+            },
+            {
+              "id": 409,
+              "market": "H",
+              "countryCode": "US",
+              "network": "MSGSN",
+              "sequenceNumber": 411
+            }
+          ],
+          "gameCenterLink": "/gamecenter/van-vs-njd/2026/10/10/2026020071"
+        },
+        {
+          "id": 2026020072,
+          "season": 20262027,
+          "gameType": 2,
+          "gameState": "FUT",
+          "gameScheduleState": "OK",
+          "startTimeUTC": "2026-10-10T20:00:00Z",
+          "easternUTCOffset": "-04:00",
+          "venue": {
+            "default": "SAP Center at San Jose"
+          },
+          "awayTeam": {
+            "abbrev": "EDM"
+          },
+          "homeTeam": {
+            "abbrev": "SJS"
+          },
+          "tvBroadcasts": [
+            {
+              "id": 289,
+              "market": "N",
+              "countryCode": "CA",
+              "network": "SNW",
+              "sequenceNumber": 34
+            },
+            {
+              "id": 284,
+              "market": "N",
+              "countryCode": "CA",
+              "network": "SN1",
+              "sequenceNumber": 113
+            },
+            {
+              "id": 314,
+              "market": "H",
+              "countryCode": "US",
+              "network": "NBCSCA",
+              "sequenceNumber": 393
+            }
+          ],
+          "gameCenterLink": "/gamecenter/edm-vs-sjs/2026/10/10/2026020072"
+        },
+        {
+          "id": 2026020073,
+          "season": 20262027,
+          "gameType": 2,
+          "gameState": "FUT",
+          "gameScheduleState": "OK",
+          "startTimeUTC": "2026-10-10T22:00:00Z",
+          "easternUTCOffset": "-04:00",
+          "venue": {
+            "default": "Amerant Bank Arena"
+          },
+          "awayTeam": {
+            "abbrev": "MIN"
+          },
+          "homeTeam": {
+            "abbrev": "FLA"
+          },
+          "tvBroadcasts": [
+            {
+              "id": 648,
+              "market": "A",
+              "countryCode": "US",
+              "network": "MINNHL",
+              "sequenceNumber": 1
+            },
+            {
+              "id": 758,
+              "market": "A",
+              "countryCode": "US",
+              "network": "Wild+",
+              "sequenceNumber": 1
+            },
+            {
+              "id": 521,
+              "market": "H",
+              "countryCode": "US",
+              "network": "SCRIPPS",
+              "sequenceNumber": 657
+            }
+          ],
+          "gameCenterLink": "/gamecenter/min-vs-fla/2026/10/10/2026020073"
+        },
+        {
+          "id": 2026020074,
+          "season": 20262027,
+          "gameType": 2,
+          "gameState": "FUT",
+          "gameScheduleState": "OK",
+          "startTimeUTC": "2026-10-10T23:00:00Z",
+          "easternUTCOffset": "-04:00",
+          "venue": {
+            "default": "KeyBank Center"
+          },
+          "awayTeam": {
+            "abbrev": "UTA"
+          },
+          "homeTeam": {
+            "abbrev": "BUF"
+          },
+          "tvBroadcasts": [
+            {
+              "id": 558,
+              "market": "A",
+              "countryCode": "US",
+              "network": "Utah16",
+              "sequenceNumber": 381
+            },
+            {
+              "id": 28,
+              "market": "H",
+              "countryCode": "US",
+              "network": "MSG-B",
+              "sequenceNumber": 392
+            }
+          ],
+          "gameCenterLink": "/gamecenter/uta-vs-buf/2026/10/10/2026020074"
+        },
+        {
+          "id": 2026020075,
+          "season": 20262027,
+          "gameType": 2,
+          "gameState": "FUT",
+          "gameScheduleState": "OK",
+          "startTimeUTC": "2026-10-10T23:00:00Z",
+          "easternUTCOffset": "-04:00",
+          "venue": {
+            "default": "Centre Bell"
+          },
+          "awayTeam": {
+            "abbrev": "DET"
+          },
+          "homeTeam": {
+            "abbrev": "MTL"
+          },
+          "tvBroadcasts": [
+            {
+              "id": 645,
+              "market": "A",
+              "countryCode": "US",
+              "network": "DSN",
+              "sequenceNumber": 1
+            },
+            {
+              "id": 287,
+              "market": "N",
+              "countryCode": "CA",
+              "network": "SNE",
+              "sequenceNumber": 30
+            },
+            {
+              "id": 281,
+              "market": "N",
+              "countryCode": "CA",
+              "network": "TVAS",
+              "sequenceNumber": 120
+            }
+          ],
+          "gameCenterLink": "/gamecenter/det-vs-mtl/2026/10/10/2026020075"
+        },
+        {
+          "id": 2026020076,
+          "season": 20262027,
+          "gameType": 2,
+          "gameState": "FUT",
+          "gameScheduleState": "OK",
+          "startTimeUTC": "2026-10-10T23:00:00Z",
+          "easternUTCOffset": "-04:00",
+          "venue": {
+            "default": "Canadian Tire Centre"
+          },
+          "awayTeam": {
+            "abbrev": "NSH"
+          },
+          "homeTeam": {
+            "abbrev": "OTT"
+          },
+          "tvBroadcasts": [
+            {
+              "id": 284,
+              "market": "N",
+              "countryCode": "CA",
+              "network": "SN1",
+              "sequenceNumber": 113
+            },
+            {
+              "id": 521,
+              "market": "A",
+              "countryCode": "US",
+              "network": "SCRIPPS",
+              "sequenceNumber": 657
+            }
+          ],
+          "gameCenterLink": "/gamecenter/nsh-vs-ott/2026/10/10/2026020076"
+        },
+        {
+          "id": 2026020077,
+          "season": 20262027,
+          "gameType": 2,
+          "gameState": "FUT",
+          "gameScheduleState": "OK",
+          "startTimeUTC": "2026-10-10T23:00:00Z",
+          "easternUTCOffset": "-04:00",
+          "venue": {
+            "default": "PPG Paints Arena"
+          },
+          "awayTeam": {
+            "abbrev": "DAL"
+          },
+          "homeTeam": {
+            "abbrev": "PIT"
+          },
+          "tvBroadcasts": [
+            {
+              "id": 652,
+              "market": "A",
+              "countryCode": "US",
+              "network": "Prime Video",
+              "sequenceNumber": 117
+            },
+            {
+              "id": 528,
+              "market": "H",
+              "countryCode": "US",
+              "network": "SN-PIT",
+              "sequenceNumber": 384
+            }
+          ],
+          "gameCenterLink": "/gamecenter/dal-vs-pit/2026/10/10/2026020077"
+        },
+        {
+          "id": 2026020078,
+          "season": 20262027,
+          "gameType": 2,
+          "gameState": "FUT",
+          "gameScheduleState": "OK",
+          "startTimeUTC": "2026-10-10T23:00:00Z",
+          "easternUTCOffset": "-04:00",
+          "venue": {
+            "default": "United Center"
+          },
+          "awayTeam": {
+            "abbrev": "CAR"
+          },
+          "homeTeam": {
+            "abbrev": "CHI"
+          },
+          "tvBroadcasts": [
+            {
+              "id": 646,
+              "market": "A",
+              "countryCode": "US",
+              "network": "CARNHL",
+              "sequenceNumber": 1
+            },
+            {
+              "id": 754,
+              "market": "A",
+              "countryCode": "US",
+              "network": "HHN",
+              "sequenceNumber": 1
+            },
+            {
+              "id": 551,
+              "market": "H",
+              "countryCode": "US",
+              "network": "CHSN",
+              "sequenceNumber": 254
+            }
+          ],
+          "gameCenterLink": "/gamecenter/car-vs-chi/2026/10/10/2026020078"
+        },
+        {
+          "id": 2026020079,
+          "season": 20262027,
+          "gameType": 2,
+          "gameState": "FUT",
+          "gameScheduleState": "OK",
+          "startTimeUTC": "2026-10-10T23:00:00Z",
+          "easternUTCOffset": "-04:00",
+          "venue": {
+            "default": "Enterprise Center"
+          },
+          "awayTeam": {
+            "abbrev": "CBJ"
+          },
+          "homeTeam": {
+            "abbrev": "STL"
+          },
+          "tvBroadcasts": [
+            {
+              "id": 647,
+              "market": "A",
+              "countryCode": "US",
+              "network": "CBJNHL",
+              "sequenceNumber": 1
+            },
+            {
+              "id": 649,
+              "market": "H",
+              "countryCode": "US",
+              "network": "STLNHL",
+              "sequenceNumber": 1
+            },
+            {
+              "id": 650,
+              "market": "H",
+              "countryCode": "US",
+              "network": "BN+",
+              "sequenceNumber": 1
+            },
+            {
+              "id": 755,
+              "market": "A",
+              "countryCode": "US",
+              "network": "CBJHN",
+              "sequenceNumber": 1
+            }
+          ],
+          "gameCenterLink": "/gamecenter/cbj-vs-stl/2026/10/10/2026020079"
+        },
+        {
+          "id": 2026020080,
+          "season": 20262027,
+          "gameType": 2,
+          "gameState": "FUT",
+          "gameScheduleState": "OK",
+          "startTimeUTC": "2026-10-10T23:00:00Z",
+          "easternUTCOffset": "-04:00",
+          "venue": {
+            "default": "Ball Arena"
+          },
+          "awayTeam": {
+            "abbrev": "TOR"
+          },
+          "homeTeam": {
+            "abbrev": "COL"
+          },
+          "tvBroadcasts": [
+            {
+              "id": 282,
+              "market": "N",
+              "countryCode": "CA",
+              "network": "SN",
+              "sequenceNumber": 21
+            },
+            {
+              "id": 324,
+              "market": "N",
+              "countryCode": "US",
+              "network": "NHLN",
+              "sequenceNumber": 35
+            },
+            {
+              "id": 2,
+              "market": "H",
+              "countryCode": "US",
+              "network": "ALT",
+              "sequenceNumber": 385
+            }
+          ],
+          "gameCenterLink": "/gamecenter/tor-vs-col/2026/10/10/2026020080"
+        },
+        {
+          "id": 2026020081,
+          "season": 20262027,
+          "gameType": 2,
+          "gameState": "FUT",
+          "gameScheduleState": "OK",
+          "startTimeUTC": "2026-10-10T23:30:00Z",
+          "easternUTCOffset": "-04:00",
+          "venue": {
+            "default": "UBS Arena"
+          },
+          "awayTeam": {
+            "abbrev": "TBL"
+          },
+          "homeTeam": {
+            "abbrev": "NYI"
+          },
+          "tvBroadcasts": [
+            {
+              "id": 581,
+              "market": "A",
+              "countryCode": "US",
+              "network": "The Spot",
+              "sequenceNumber": 211
+            },
+            {
+              "id": 409,
+              "market": "H",
+              "countryCode": "US",
+              "network": "MSGSN",
+              "sequenceNumber": 411
+            }
+          ],
+          "gameCenterLink": "/gamecenter/tbl-vs-nyi/2026/10/10/2026020081"
+        },
+        {
+          "id": 2026020082,
+          "season": 20262027,
+          "gameType": 2,
+          "gameState": "FUT",
+          "gameScheduleState": "OK",
+          "startTimeUTC": "2026-10-11T02:00:00Z",
+          "easternUTCOffset": "-04:00",
+          "venue": {
+            "default": "Scotiabank Saddledome"
+          },
+          "awayTeam": {
+            "abbrev": "ANA"
+          },
+          "homeTeam": {
+            "abbrev": "CGY"
+          },
+          "tvBroadcasts": [
+            {
+              "id": 282,
+              "market": "N",
+              "countryCode": "CA",
+              "network": "SN",
+              "sequenceNumber": 107
+            },
+            {
+              "id": 652,
+              "market": "A",
+              "countryCode": "US",
+              "network": "Prime Video",
+              "sequenceNumber": 117
+            },
+            {
+              "id": 219,
+              "market": "A",
+              "countryCode": "US",
+              "network": "KCOP-13",
+              "sequenceNumber": 656
+            }
+          ],
+          "gameCenterLink": "/gamecenter/ana-vs-cgy/2026/10/10/2026020082"
+        },
+        {
+          "id": 2026020083,
+          "season": 20262027,
+          "gameType": 2,
+          "gameState": "FUT",
+          "gameScheduleState": "OK",
+          "startTimeUTC": "2026-10-11T02:00:00Z",
+          "easternUTCOffset": "-04:00",
+          "venue": {
+            "default": "T-Mobile Arena"
+          },
+          "awayTeam": {
+            "abbrev": "LAK"
+          },
+          "homeTeam": {
+            "abbrev": "VGK"
+          },
+          "tvBroadcasts": [
+            {
+              "id": 651,
+              "market": "A",
+              "countryCode": "US",
+              "network": "ABTV ",
+              "sequenceNumber": 1
+            },
+            {
+              "id": 521,
+              "market": "H",
+              "countryCode": "US",
+              "network": "SCRIPPS",
+              "sequenceNumber": 657
+            }
+          ],
+          "gameCenterLink": "/gamecenter/lak-vs-vgk/2026/10/10/2026020083"
+        }
+      ]
+    },
+    {
+      "date": "2026-10-11",
+      "dayAbbrev": "SUN",
+      "numberOfGames": 3,
+      "games": [
+        {
+          "id": 2026020084,
+          "season": 20262027,
+          "gameType": 2,
+          "gameState": "FUT",
+          "gameScheduleState": "OK",
+          "startTimeUTC": "2026-10-11T21:00:00Z",
+          "easternUTCOffset": "-04:00",
+          "venue": {
+            "default": "Capital One Arena"
+          },
+          "awayTeam": {
+            "abbrev": "SEA"
+          },
+          "homeTeam": {
+            "abbrev": "WSH"
+          },
+          "tvBroadcasts": [
+            {
+              "id": 549,
+              "market": "N",
+              "countryCode": "CA",
+              "network": "SN+",
+              "sequenceNumber": 117
+            },
+            {
+              "id": 652,
+              "market": "A",
+              "countryCode": "US",
+              "network": "Prime Video",
+              "sequenceNumber": 117
+            },
+            {
+              "id": 281,
+              "market": "N",
+              "countryCode": "CA",
+              "network": "TVAS",
+              "sequenceNumber": 120
+            },
+            {
+              "id": 517,
+              "market": "H",
+              "countryCode": "US",
+              "network": "MNMT",
+              "sequenceNumber": 396
+            },
+            {
+              "id": 388,
+              "market": "A",
+              "countryCode": "US",
+              "network": "KONG",
+              "sequenceNumber": 654
+            }
+          ],
+          "gameCenterLink": "/gamecenter/sea-vs-wsh/2026/10/11/2026020084"
+        },
+        {
+          "id": 2026020085,
+          "season": 20262027,
+          "gameType": 2,
+          "gameState": "FUT",
+          "gameScheduleState": "OK",
+          "startTimeUTC": "2026-10-11T22:00:00Z",
+          "easternUTCOffset": "-04:00",
+          "venue": {
+            "default": "Madison Square Garden"
+          },
+          "awayTeam": {
+            "abbrev": "VAN"
+          },
+          "homeTeam": {
+            "abbrev": "NYR"
+          },
+          "tvBroadcasts": [
+            {
+              "id": 290,
+              "market": "N",
+              "countryCode": "CA",
+              "network": "SNP",
+              "sequenceNumber": 33
+            },
+            {
+              "id": 27,
+              "market": "H",
+              "countryCode": "US",
+              "network": "MSG",
+              "sequenceNumber": 417
+            }
+          ],
+          "gameCenterLink": "/gamecenter/van-vs-nyr/2026/10/11/2026020085"
+        },
+        {
+          "id": 2026020086,
+          "season": 20262027,
+          "gameType": 2,
+          "gameState": "FUT",
+          "gameScheduleState": "OK",
+          "startTimeUTC": "2026-10-11T23:00:00Z",
+          "easternUTCOffset": "-04:00",
+          "venue": {
+            "default": "Xfinity Mobile Arena"
+          },
+          "awayTeam": {
+            "abbrev": "CAR"
+          },
+          "homeTeam": {
+            "abbrev": "PHI"
+          },
+          "tvBroadcasts": [
+            {
+              "id": 646,
+              "market": "A",
+              "countryCode": "US",
+              "network": "CARNHL",
+              "sequenceNumber": 1
+            },
+            {
+              "id": 754,
+              "market": "A",
+              "countryCode": "US",
+              "network": "HHN",
+              "sequenceNumber": 1
+            },
+            {
+              "id": 324,
+              "market": "N",
+              "countryCode": "US",
+              "network": "NHLN",
+              "sequenceNumber": 35
+            },
+            {
+              "id": 549,
+              "market": "N",
+              "countryCode": "CA",
+              "network": "SN+",
+              "sequenceNumber": 117
+            },
+            {
+              "id": 281,
+              "market": "N",
+              "countryCode": "CA",
+              "network": "TVAS",
+              "sequenceNumber": 120
+            },
+            {
+              "id": 322,
+              "market": "H",
+              "countryCode": "US",
+              "network": "NBCSP",
+              "sequenceNumber": 389
+            }
+          ],
+          "gameCenterLink": "/gamecenter/car-vs-phi/2026/10/11/2026020086"
+        }
+      ]
+    },
+    {
+      "date": "2026-10-12",
+      "dayAbbrev": "MON",
+      "numberOfGames": 3,
+      "games": [
+        {
+          "id": 2026020087,
+          "season": 20262027,
+          "gameType": 2,
+          "gameState": "FUT",
+          "gameScheduleState": "OK",
+          "startTimeUTC": "2026-10-12T17:00:00Z",
+          "easternUTCOffset": "-04:00",
+          "venue": {
+            "default": "KeyBank Center"
+          },
+          "awayTeam": {
+            "abbrev": "FLA"
+          },
+          "homeTeam": {
+            "abbrev": "BUF"
+          },
+          "tvBroadcasts": [
+            {
+              "id": 282,
+              "market": "N",
+              "countryCode": "CA",
+              "network": "SN",
+              "sequenceNumber": 107
+            },
+            {
+              "id": 281,
+              "market": "N",
+              "countryCode": "CA",
+              "network": "TVAS",
+              "sequenceNumber": 120
+            },
+            {
+              "id": 28,
+              "market": "H",
+              "countryCode": "US",
+              "network": "MSG-B",
+              "sequenceNumber": 392
+            },
+            {
+              "id": 521,
+              "market": "A",
+              "countryCode": "US",
+              "network": "SCRIPPS",
+              "sequenceNumber": 657
+            }
+          ],
+          "gameCenterLink": "/gamecenter/fla-vs-buf/2026/10/12/2026020087"
+        },
+        {
+          "id": 2026020088,
+          "season": 20262027,
+          "gameType": 2,
+          "gameState": "FUT",
+          "gameScheduleState": "OK",
+          "startTimeUTC": "2026-10-12T23:00:00Z",
+          "easternUTCOffset": "-04:00",
+          "venue": {
+            "default": "Prudential Center"
+          },
+          "awayTeam": {
+            "abbrev": "OTT"
+          },
+          "homeTeam": {
+            "abbrev": "NJD"
+          },
+          "tvBroadcasts": [
+            {
+              "id": 324,
+              "market": "N",
+              "countryCode": "US",
+              "network": "NHLN",
+              "sequenceNumber": 35
+            },
+            {
+              "id": 549,
+              "market": "N",
+              "countryCode": "CA",
+              "network": "SN+",
+              "sequenceNumber": 117
+            },
+            {
+              "id": 281,
+              "market": "N",
+              "countryCode": "CA",
+              "network": "TVAS",
+              "sequenceNumber": 120
+            },
+            {
+              "id": 409,
+              "market": "H",
+              "countryCode": "US",
+              "network": "MSGSN",
+              "sequenceNumber": 411
+            }
+          ],
+          "gameCenterLink": "/gamecenter/ott-vs-njd/2026/10/12/2026020088"
+        },
+        {
+          "id": 2026020089,
+          "season": 20262027,
+          "gameType": 2,
+          "gameState": "FUT",
+          "gameScheduleState": "OK",
+          "startTimeUTC": "2026-10-13T00:00:00Z",
+          "easternUTCOffset": "-04:00",
+          "venue": {
+            "default": "Grand Casino Arena"
+          },
+          "awayTeam": {
+            "abbrev": "VGK"
+          },
+          "homeTeam": {
+            "abbrev": "MIN"
+          },
+          "tvBroadcasts": [
+            {
+              "id": 648,
+              "market": "H",
+              "countryCode": "US",
+              "network": "MINNHL",
+              "sequenceNumber": 1
+            },
+            {
+              "id": 758,
+              "market": "H",
+              "countryCode": "US",
+              "network": "Wild+",
+              "sequenceNumber": 1
+            },
+            {
+              "id": 521,
+              "market": "A",
+              "countryCode": "US",
+              "network": "SCRIPPS",
+              "sequenceNumber": 657
+            }
+          ],
+          "gameCenterLink": "/gamecenter/vgk-vs-min/2026/10/12/2026020089"
+        }
+      ]
+    },
+    {
+      "date": "2026-10-13",
+      "dayAbbrev": "TUE",
+      "numberOfGames": 16,
+      "games": [
+        {
+          "id": 2026020090,
+          "season": 20262027,
+          "gameType": 2,
+          "gameState": "FUT",
+          "gameScheduleState": "OK",
+          "startTimeUTC": "2026-10-13T22:00:00Z",
+          "easternUTCOffset": "-04:00",
+          "venue": {
+            "default": "Little Caesars Arena"
+          },
+          "awayTeam": {
+            "abbrev": "NJD"
+          },
+          "homeTeam": {
+            "abbrev": "DET"
+          },
+          "tvBroadcasts": [
+            {
+              "id": 309,
+              "market": "N",
+              "countryCode": "US",
+              "network": "ESPN",
+              "sequenceNumber": 10
+            },
+            {
+              "id": 549,
+              "market": "N",
+              "countryCode": "CA",
+              "network": "SN+",
+              "sequenceNumber": 117
+            }
+          ],
+          "gameCenterLink": "/gamecenter/njd-vs-det/2026/10/13/2026020090"
+        },
+        {
+          "id": 2026020091,
+          "season": 20262027,
+          "gameType": 2,
+          "gameState": "FUT",
+          "gameScheduleState": "OK",
+          "startTimeUTC": "2026-10-13T22:15:00Z",
+          "easternUTCOffset": "-04:00",
+          "venue": {
+            "default": "Nationwide Arena"
+          },
+          "awayTeam": {
+            "abbrev": "FLA"
+          },
+          "homeTeam": {
+            "abbrev": "CBJ"
+          },
+          "tvBroadcasts": [
+            {
+              "id": 647,
+              "market": "H",
+              "countryCode": "US",
+              "network": "CBJNHL",
+              "sequenceNumber": 1
+            },
+            {
+              "id": 755,
+              "market": "H",
+              "countryCode": "US",
+              "network": "CBJHN",
+              "sequenceNumber": 1
+            },
+            {
+              "id": 521,
+              "market": "A",
+              "countryCode": "US",
+              "network": "SCRIPPS",
+              "sequenceNumber": 657
+            }
+          ],
+          "gameCenterLink": "/gamecenter/fla-vs-cbj/2026/10/13/2026020091"
+        },
+        {
+          "id": 2026020092,
+          "season": 20262027,
+          "gameType": 2,
+          "gameState": "FUT",
+          "gameScheduleState": "OK",
+          "startTimeUTC": "2026-10-13T22:30:00Z",
+          "easternUTCOffset": "-04:00",
+          "venue": {
+            "default": "Centre Bell"
+          },
+          "awayTeam": {
+            "abbrev": "BUF"
+          },
+          "homeTeam": {
+            "abbrev": "MTL"
+          },
+          "tvBroadcasts": [
+            {
+              "id": 131,
+              "market": "H",
+              "countryCode": "CA",
+              "network": "TSN2",
+              "sequenceNumber": 112
+            },
+            {
+              "id": 33,
+              "market": "H",
+              "countryCode": "CA",
+              "network": "RDS",
+              "sequenceNumber": 145
+            },
+            {
+              "id": 28,
+              "market": "A",
+              "countryCode": "US",
+              "network": "MSG-B",
+              "sequenceNumber": 392
+            }
+          ],
+          "gameCenterLink": "/gamecenter/buf-vs-mtl/2026/10/13/2026020092"
+        },
+        {
+          "id": 2026020093,
+          "season": 20262027,
+          "gameType": 2,
+          "gameState": "FUT",
+          "gameScheduleState": "OK",
+          "startTimeUTC": "2026-10-13T22:45:00Z",
+          "easternUTCOffset": "-04:00",
+          "venue": {
+            "default": "Lenovo Center"
+          },
+          "awayTeam": {
+            "abbrev": "WSH"
+          },
+          "homeTeam": {
+            "abbrev": "CAR"
+          },
+          "tvBroadcasts": [
+            {
+              "id": 646,
+              "market": "H",
+              "countryCode": "US",
+              "network": "CARNHL",
+              "sequenceNumber": 1
+            },
+            {
+              "id": 754,
+              "market": "H",
+              "countryCode": "US",
+              "network": "HHN",
+              "sequenceNumber": 1
+            },
+            {
+              "id": 517,
+              "market": "A",
+              "countryCode": "US",
+              "network": "MNMT",
+              "sequenceNumber": 396
+            }
+          ],
+          "gameCenterLink": "/gamecenter/wsh-vs-car/2026/10/13/2026020093"
+        },
+        {
+          "id": 2026020094,
+          "season": 20262027,
+          "gameType": 2,
+          "gameState": "FUT",
+          "gameScheduleState": "OK",
+          "startTimeUTC": "2026-10-13T23:00:00Z",
+          "easternUTCOffset": "-04:00",
+          "venue": {
+            "default": "Xfinity Mobile Arena"
+          },
+          "awayTeam": {
+            "abbrev": "SEA"
+          },
+          "homeTeam": {
+            "abbrev": "PHI"
+          },
+          "tvBroadcasts": [
+            {
+              "id": 652,
+              "market": "A",
+              "countryCode": "US",
+              "network": "Prime Video",
+              "sequenceNumber": 117
+            },
+            {
+              "id": 322,
+              "market": "H",
+              "countryCode": "US",
+              "network": "NBCSP",
+              "sequenceNumber": 389
+            },
+            {
+              "id": 387,
+              "market": "A",
+              "countryCode": "US",
+              "network": "KING",
+              "sequenceNumber": 615
+            },
+            {
+              "id": 388,
+              "market": "A",
+              "countryCode": "US",
+              "network": "KONG",
+              "sequenceNumber": 654
+            }
+          ],
+          "gameCenterLink": "/gamecenter/sea-vs-phi/2026/10/13/2026020094"
+        },
+        {
+          "id": 2026020095,
+          "season": 20262027,
+          "gameType": 2,
+          "gameState": "FUT",
+          "gameScheduleState": "OK",
+          "startTimeUTC": "2026-10-13T23:15:00Z",
+          "easternUTCOffset": "-04:00",
+          "venue": {
+            "default": "Madison Square Garden"
+          },
+          "awayTeam": {
+            "abbrev": "TBL"
+          },
+          "homeTeam": {
+            "abbrev": "NYR"
+          },
+          "tvBroadcasts": [
+            {
+              "id": 581,
+              "market": "A",
+              "countryCode": "US",
+              "network": "The Spot",
+              "sequenceNumber": 211
+            },
+            {
+              "id": 27,
+              "market": "H",
+              "countryCode": "US",
+              "network": "MSG",
+              "sequenceNumber": 417
+            }
+          ],
+          "gameCenterLink": "/gamecenter/tbl-vs-nyr/2026/10/13/2026020095"
+        },
+        {
+          "id": 2026020096,
+          "season": 20262027,
+          "gameType": 2,
+          "gameState": "FUT",
+          "gameScheduleState": "OK",
+          "startTimeUTC": "2026-10-13T23:30:00Z",
+          "easternUTCOffset": "-04:00",
+          "venue": {
+            "default": "Canadian Tire Centre"
+          },
+          "awayTeam": {
+            "abbrev": "STL"
+          },
+          "homeTeam": {
+            "abbrev": "OTT"
+          },
+          "tvBroadcasts": [
+            {
+              "id": 649,
+              "market": "A",
+              "countryCode": "US",
+              "network": "STLNHL",
+              "sequenceNumber": 1
+            },
+            {
+              "id": 650,
+              "market": "A",
+              "countryCode": "US",
+              "network": "BN+",
+              "sequenceNumber": 1
+            },
+            {
+              "id": 294,
+              "market": "H",
+              "countryCode": "CA",
+              "network": "TSN5",
+              "sequenceNumber": 135
+            },
+            {
+              "id": 242,
+              "market": "H",
+              "countryCode": "CA",
+              "network": "RDSI",
+              "sequenceNumber": 147
+            }
+          ],
+          "gameCenterLink": "/gamecenter/stl-vs-ott/2026/10/13/2026020096"
+        },
+        {
+          "id": 2026020097,
+          "season": 20262027,
+          "gameType": 2,
+          "gameState": "FUT",
+          "gameScheduleState": "OK",
+          "startTimeUTC": "2026-10-13T23:45:00Z",
+          "easternUTCOffset": "-04:00",
+          "venue": {
+            "default": "UBS Arena"
+          },
+          "awayTeam": {
+            "abbrev": "VAN"
+          },
+          "homeTeam": {
+            "abbrev": "NYI"
+          },
+          "tvBroadcasts": [
+            {
+              "id": 290,
+              "market": "N",
+              "countryCode": "CA",
+              "network": "SNP",
+              "sequenceNumber": 33
+            },
+            {
+              "id": 409,
+              "market": "H",
+              "countryCode": "US",
+              "network": "MSGSN",
+              "sequenceNumber": 411
+            }
+          ],
+          "gameCenterLink": "/gamecenter/van-vs-nyi/2026/10/13/2026020097"
+        },
+        {
+          "id": 2026020098,
+          "season": 20262027,
+          "gameType": 2,
+          "gameState": "FUT",
+          "gameScheduleState": "OK",
+          "startTimeUTC": "2026-10-14T00:00:00Z",
+          "easternUTCOffset": "-04:00",
+          "venue": {
+            "default": "United Center"
+          },
+          "awayTeam": {
+            "abbrev": "PIT"
+          },
+          "homeTeam": {
+            "abbrev": "CHI"
+          },
+          "tvBroadcasts": [
+            {
+              "id": 551,
+              "market": "H",
+              "countryCode": "US",
+              "network": "CHSN",
+              "sequenceNumber": 254
+            },
+            {
+              "id": 528,
+              "market": "A",
+              "countryCode": "US",
+              "network": "SN-PIT",
+              "sequenceNumber": 384
+            }
+          ],
+          "gameCenterLink": "/gamecenter/pit-vs-chi/2026/10/13/2026020098"
+        },
+        {
+          "id": 2026020099,
+          "season": 20262027,
+          "gameType": 2,
+          "gameState": "FUT",
+          "gameScheduleState": "OK",
+          "startTimeUTC": "2026-10-14T00:15:00Z",
+          "easternUTCOffset": "-04:00",
+          "venue": {
+            "default": "Canada Life Centre"
+          },
+          "awayTeam": {
+            "abbrev": "MIN"
+          },
+          "homeTeam": {
+            "abbrev": "WPG"
+          },
+          "tvBroadcasts": [
+            {
+              "id": 648,
+              "market": "A",
+              "countryCode": "US",
+              "network": "MINNHL",
+              "sequenceNumber": 1
+            },
+            {
+              "id": 758,
+              "market": "A",
+              "countryCode": "US",
+              "network": "Wild+",
+              "sequenceNumber": 1
+            },
+            {
+              "id": 292,
+              "market": "H",
+              "countryCode": "CA",
+              "network": "TSN3",
+              "sequenceNumber": 134
+            }
+          ],
+          "gameCenterLink": "/gamecenter/min-vs-wpg/2026/10/13/2026020099"
+        },
+        {
+          "id": 2026020100,
+          "season": 20262027,
+          "gameType": 2,
+          "gameState": "FUT",
+          "gameScheduleState": "OK",
+          "startTimeUTC": "2026-10-14T00:30:00Z",
+          "easternUTCOffset": "-04:00",
+          "venue": {
+            "default": "American Airlines Center"
+          },
+          "awayTeam": {
+            "abbrev": "COL"
+          },
+          "homeTeam": {
+            "abbrev": "DAL"
+          },
+          "tvBroadcasts": [
+            {
+              "id": 309,
+              "market": "N",
+              "countryCode": "US",
+              "network": "ESPN",
+              "sequenceNumber": 10
+            },
+            {
+              "id": 549,
+              "market": "N",
+              "countryCode": "CA",
+              "network": "SN+",
+              "sequenceNumber": 117
+            },
+            {
+              "id": 281,
+              "market": "N",
+              "countryCode": "CA",
+              "network": "TVAS",
+              "sequenceNumber": 120
+            }
+          ],
+          "gameCenterLink": "/gamecenter/col-vs-dal/2026/10/13/2026020100"
+        },
+        {
+          "id": 2026020101,
+          "season": 20262027,
+          "gameType": 2,
+          "gameState": "FUT",
+          "gameScheduleState": "OK",
+          "startTimeUTC": "2026-10-14T00:45:00Z",
+          "easternUTCOffset": "-04:00",
+          "venue": {
+            "default": "Bridgestone Arena"
+          },
+          "awayTeam": {
+            "abbrev": "VGK"
+          },
+          "homeTeam": {
+            "abbrev": "NSH"
+          },
+          "tvBroadcasts": [
+            {
+              "id": 521,
+              "market": "A",
+              "countryCode": "US",
+              "network": "SCRIPPS",
+              "sequenceNumber": 657
+            },
+            {
+              "id": 521,
+              "market": "H",
+              "countryCode": "US",
+              "network": "SCRIPPS",
+              "sequenceNumber": 657
+            }
+          ],
+          "gameCenterLink": "/gamecenter/vgk-vs-nsh/2026/10/13/2026020101"
+        },
+        {
+          "id": 2026020102,
+          "season": 20262027,
+          "gameType": 2,
+          "gameState": "FUT",
+          "gameScheduleState": "OK",
+          "startTimeUTC": "2026-10-14T01:00:00Z",
+          "easternUTCOffset": "-04:00",
+          "venue": {
+            "default": "Delta Center"
+          },
+          "awayTeam": {
+            "abbrev": "TOR"
+          },
+          "homeTeam": {
+            "abbrev": "UTA"
+          },
+          "tvBroadcasts": [
+            {
+              "id": 293,
+              "market": "A",
+              "countryCode": "CA",
+              "network": "TSN4",
+              "sequenceNumber": 137
+            },
+            {
+              "id": 558,
+              "market": "H",
+              "countryCode": "US",
+              "network": "Utah16",
+              "sequenceNumber": 381
+            }
+          ],
+          "gameCenterLink": "/gamecenter/tor-vs-uta/2026/10/13/2026020102"
+        },
+        {
+          "id": 2026020103,
+          "season": 20262027,
+          "gameType": 2,
+          "gameState": "FUT",
+          "gameScheduleState": "OK",
+          "startTimeUTC": "2026-10-14T01:45:00Z",
+          "easternUTCOffset": "-04:00",
+          "venue": {
+            "default": "Honda Center"
+          },
+          "awayTeam": {
+            "abbrev": "CGY"
+          },
+          "homeTeam": {
+            "abbrev": "ANA"
+          },
+          "tvBroadcasts": [
+            {
+              "id": 289,
+              "market": "N",
+              "countryCode": "CA",
+              "network": "SNW",
+              "sequenceNumber": 34
+            },
+            {
+              "id": 652,
+              "market": "H",
+              "countryCode": "US",
+              "network": "Prime Video",
+              "sequenceNumber": 117
+            },
+            {
+              "id": 219,
+              "market": "H",
+              "countryCode": "US",
+              "network": "KCOP-13",
+              "sequenceNumber": 656
+            }
+          ],
+          "gameCenterLink": "/gamecenter/cgy-vs-ana/2026/10/13/2026020103"
+        },
+        {
+          "id": 2026020104,
+          "season": 20262027,
+          "gameType": 2,
+          "gameState": "FUT",
+          "gameScheduleState": "OK",
+          "startTimeUTC": "2026-10-14T02:30:00Z",
+          "easternUTCOffset": "-04:00",
+          "venue": {
+            "default": "Crypto.com Arena"
+          },
+          "awayTeam": {
+            "abbrev": "EDM"
+          },
+          "homeTeam": {
+            "abbrev": "LAK"
+          },
+          "tvBroadcasts": [
+            {
+              "id": 651,
+              "market": "H",
+              "countryCode": "US",
+              "network": "ABTV ",
+              "sequenceNumber": 1
+            },
+            {
+              "id": 284,
+              "market": "N",
+              "countryCode": "CA",
+              "network": "SN1",
+              "sequenceNumber": 113
+            },
+            {
+              "id": 281,
+              "market": "N",
+              "countryCode": "CA",
+              "network": "TVAS",
+              "sequenceNumber": 120
+            }
+          ],
+          "gameCenterLink": "/gamecenter/edm-vs-lak/2026/10/13/2026020104"
+        },
+        {
+          "id": 2026020105,
+          "season": 20262027,
+          "gameType": 2,
+          "gameState": "FUT",
+          "gameScheduleState": "OK",
+          "startTimeUTC": "2026-10-14T03:00:00Z",
+          "easternUTCOffset": "-04:00",
+          "venue": {
+            "default": "SAP Center at San Jose"
+          },
+          "awayTeam": {
+            "abbrev": "BOS"
+          },
+          "homeTeam": {
+            "abbrev": "SJS"
+          },
+          "tvBroadcasts": [
+            {
+              "id": 309,
+              "market": "N",
+              "countryCode": "US",
+              "network": "ESPN",
+              "sequenceNumber": 10
+            },
+            {
+              "id": 549,
+              "market": "N",
+              "countryCode": "CA",
+              "network": "SN+",
+              "sequenceNumber": 117
+            },
+            {
+              "id": 31,
+              "market": "A",
+              "countryCode": "US",
+              "network": "NESN",
+              "sequenceNumber": 405
+            }
+          ],
+          "gameCenterLink": "/gamecenter/bos-vs-sjs/2026/10/13/2026020105"
+        }
+      ]
+    }
+  ]
+}
