@@ -20,3 +20,10 @@ export function describeTypes(types: readonly PostType[]): string {
   if (words.length <= 1) return words.join("");
   return `${words.slice(0, -1).join(", ")} and ${words.at(-1)}`;
 }
+
+/** Countries NHL.com lists TV channels for. */
+export type Country = "US" | "CA";
+
+export function isCountry(value: string): value is Country {
+  return value === "US" || value === "CA";
+}

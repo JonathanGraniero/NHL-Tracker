@@ -1,9 +1,9 @@
 import { getTeam } from "../data/teams";
 import type { MessageBody } from "../discord/api";
+import { espnPlus } from "./espn";
 import { networkLabel } from "./networks";
 import { formatDay, type Broadcast, type Game } from "../sources/nhl";
-
-export type Country = "US" | "CA";
+import type { Country } from "../types";
 
 const COUNTRIES: readonly { code: Country; flag: string }[] = [
   { code: "US", flag: "🇺🇸" },
@@ -67,6 +67,7 @@ export function buildScheduleMessage({ date, games, nextDay, nextWeek, team, cou
  *
  *   <t:…:t> · **[PHI @ BOS](…)**
  *   🇺🇸 NHL Network · NBC Sports Philadelphia (PHI) · NESN (BOS)
+ *   ↳ Also on ESPN+ outside the PHI and BOS areas
  *   🇨🇦 Sportsnet · TVA Sports (French) · RDS (MTL, French)
  */
 export function gameBlock(game: Game, opts: { country?: Country; nationalOnly?: boolean } = {}): string {
@@ -77,9 +78,23 @@ export function gameBlock(game: Game, opts: { country?: Country; nationalOnly?: 
       if (opts.country && opts.country !== code) continue;
       const networks = countryNetworks(game, code, opts.nationalOnly ?? false);
       if (networks.length > 0) lines.push(`${flag} ${networks.join(" · ")}`);
+      if (code === "US") {
+        const streaming = espnPlusNote(game);
+        if (streaming) lines.push(networks.length > 0 ? `↳ Also on ${streaming}` : `${flag} ${streaming}`);
+      }
     }
   }
   return lines.join("\n");
+}
+
+/** "ESPN+ outside the PHI and BOS areas", or nothing when it isn't (or might not be) on Power Play. */
+function espnPlusNote(game: Game): string | undefined {
+  if (game.state === "FINAL" || game.state === "OFF") return undefined;
+  const status = espnPlus(game);
+  if (status.kind !== "out-of-market") return undefined;
+  const teams = status.blackedOut;
+  if (teams.length === 0) return "ESPN+";
+  return `ESPN+ outside the ${teams.join(" and ")} area${teams.length > 1 ? "s" : ""}`;
 }
 
 function status(game: Game): string {

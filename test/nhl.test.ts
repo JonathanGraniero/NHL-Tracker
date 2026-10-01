@@ -56,6 +56,7 @@ describe("gameBlock", () => {
       [
         `<t:${Date.parse("2026-10-10T17:00:00Z") / 1000}:t> · **[PHI @ BOS](${g.url})**`,
         "🇺🇸 NHL Network · NBC Sports Philadelphia (PHI) · NESN (BOS)",
+        "↳ Also on ESPN+ outside the PHI and BOS areas",
         "🇨🇦 Sportsnet · TVA Sports (French)",
       ].join("\n"),
     );
@@ -63,9 +64,11 @@ describe("gameBlock", () => {
 
   it("never lists a Canadian channel on the US line, or the other way round", () => {
     const g = game("2026-10-10", "PHI", "BOS");
-    const [, us, ca] = gameBlock(g).split("\n");
+    const lines = gameBlock(g).split("\n");
+    const us = lines.find((l) => l.startsWith("🇺🇸"))!;
+    const ca = lines.find((l) => l.startsWith("🇨🇦"))!;
     expect(us).not.toMatch(/Sportsnet|TVA|TSN|RDS/);
-    expect(ca).not.toMatch(/NHL Network|NESN|NBC/);
+    expect(ca).not.toMatch(/NHL Network|NESN|NBC|ESPN/);
   });
 
   it("shows one country when asked", () => {
@@ -82,7 +85,11 @@ describe("gameBlock", () => {
 
   it("can leave out team channels to save space", () => {
     const g = game("2026-10-10", "PHI", "BOS");
-    expect(gameBlock(g, { nationalOnly: true }).split("\n").slice(1)).toEqual(["🇺🇸 NHL Network", "🇨🇦 Sportsnet · TVA Sports (French)"]);
+    expect(gameBlock(g, { nationalOnly: true }).split("\n").slice(1)).toEqual([
+      "🇺🇸 NHL Network",
+      "↳ Also on ESPN+ outside the PHI and BOS areas",
+      "🇨🇦 Sportsnet · TVA Sports (French)",
+    ]);
   });
 
   it("shows scores, live games and postponements instead of a start time", () => {
@@ -94,6 +101,35 @@ describe("gameBlock", () => {
 
   it("marks preseason games", () => {
     expect(gameBlock({ ...game("2026-10-07", "PIT", "WSH"), gameType: 1 })).toContain("(preseason)");
+  });
+});
+
+describe("ESPN+ note", () => {
+  const note = (g: Game, opts = {}) => gameBlock(g, opts).split("\n").find((l) => l.includes("ESPN+"));
+
+  it("names only US teams' areas", () => {
+    expect(note(game("2026-10-08", "NSH", "MTL"))).toBe("↳ Also on ESPN+ outside the NSH area");
+  });
+
+  it("stays off national exclusives, which already list where they stream", () => {
+    expect(note(game("2026-10-07", "PIT", "WSH"))).toBeUndefined(); // TNT · HBO Max
+    expect(note(game("2026-10-13", "NJD", "DET"))).toBeUndefined(); // ESPN
+    expect(gameBlock(game("2026-10-08", "SJS", "STL")).split("\n")[1]).toBe("🇺🇸 ESPN+ · Hulu · Disney+");
+  });
+
+  it("stays off games it can't classify confidently", () => {
+    expect(note(game("2026-10-13", "BOS", "SJS"))).toBeUndefined(); // ESPN + NESN
+  });
+
+  it("stays off finished games and Canadian-only listings", () => {
+    expect(note({ ...game("2026-10-10", "PHI", "BOS"), state: "OFF" })).toBeUndefined();
+    expect(note(game("2026-10-10", "PHI", "BOS"), { country: "CA" })).toBeUndefined();
+  });
+
+  it("gets its own US line when NHL.com lists no US channels", () => {
+    const g = game("2026-10-08", "PHI", "OTT");
+    const canadianOnly = { ...g, broadcasts: g.broadcasts.filter((b) => b.country === "CA") };
+    expect(gameBlock(canadianOnly).split("\n")[1]).toBe("🇺🇸 ESPN+ outside the PHI area");
   });
 });
 
