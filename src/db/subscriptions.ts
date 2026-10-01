@@ -1,21 +1,21 @@
-import { ALL_TYPES, type TransactionType } from "../types";
+import { ALL_POST_TYPES, type PostType } from "../types";
 
 /** Stored in subscriptions.team_code to mean "every team". */
 export const ALL_TEAMS = "*";
 
 export interface Subscription {
   teamCode: string;
-  types: TransactionType[];
+  types: PostType[];
 }
 
-function parseTypes(csv: string): TransactionType[] {
-  return csv.split(",").filter((t): t is TransactionType => (ALL_TYPES as readonly string[]).includes(t));
+function parseTypes(csv: string): PostType[] {
+  return csv.split(",").filter((t): t is PostType => (ALL_POST_TYPES as readonly string[]).includes(t));
 }
 
 /** Adds a subscription, or replaces the types on an existing one. */
 export async function upsertSubscription(
   db: D1Database,
-  sub: { guildId: string; channelId: string; teamCode: string; types: readonly TransactionType[] },
+  sub: { guildId: string; channelId: string; teamCode: string; types: readonly PostType[] },
 ): Promise<"created" | "updated"> {
   const existing = await db
     .prepare("SELECT 1 FROM subscriptions WHERE channel_id = ? AND team_code = ?")
@@ -62,7 +62,7 @@ export async function listForChannel(db: D1Database, channelId: string): Promise
 export async function findChannelsFor(
   db: D1Database,
   teamCodes: readonly string[],
-  type: TransactionType,
+  type: PostType,
   guildId?: string,
 ): Promise<string[]> {
   const codes = [...new Set([...teamCodes, ALL_TEAMS])];
@@ -76,4 +76,25 @@ export async function findChannelsFor(
     .bind(...codes, `%,${type},%`, ...(guildId ? [guildId] : []))
     .all<{ channel_id: string }>();
   return results.map((r) => r.channel_id);
+}
+
+/**
+ * Every channel subscribed to `type`, with the teams it follows for it
+ * (ALL_TEAMS included as-is). Used by the daily schedule post.
+ */
+export async function channelsFollowing(
+  db: D1Database,
+  type: PostType,
+): Promise<{ channelId: string; teamCodes: string[] }[]> {
+  const { results } = await db
+    .prepare(
+      `SELECT channel_id, team_code FROM subscriptions
+       WHERE (',' || types || ',') LIKE ?
+       ORDER BY channel_id, team_code`,
+    )
+    .bind(`%,${type},%`)
+    .all<{ channel_id: string; team_code: string }>();
+  const byChannel = new Map<string, string[]>();
+  for (const r of results) byChannel.set(r.channel_id, [...(byChannel.get(r.channel_id) ?? []), r.team_code]);
+  return [...byChannel].map(([channelId, teamCodes]) => ({ channelId, teamCodes }));
 }

@@ -15,8 +15,10 @@ import {
   removeSubscription,
   upsertSubscription,
 } from "../db/subscriptions";
-import { ALL_TYPES, describeTypes, type TransactionType } from "../types";
+import { ALL_TYPES, describeTypes, type PostType, type TransactionType } from "../types";
 import { editOriginalResponse } from "./api";
+import { buildScheduleMessage } from "../games/format";
+import { NhlError, easternDate, fetchDay, formatDay } from "../sources/nhl";
 import { processItem, type Outcome } from "../news/pipeline";
 import { RedditError, fetchPost, postIdFromInput } from "../sources/reddit";
 import type { Env } from "../env";
@@ -36,7 +38,7 @@ export const COMMANDS = [
   },
   {
     name: "subscribe",
-    description: "Post a team's confirmed trades, waivers and signings in this channel.",
+    description: "Post a team's confirmed trades, waivers and signings, and optionally its daily games, here.",
     default_member_permissions: MANAGE_GUILD,
     contexts: GUILD_ONLY,
     options: [
@@ -44,6 +46,7 @@ export const COMMANDS = [
       { type: OptionType.BOOLEAN, name: "trades", description: "Post trades (default: yes)" },
       { type: OptionType.BOOLEAN, name: "waivers", description: "Post waiver moves (default: yes)" },
       { type: OptionType.BOOLEAN, name: "signings", description: "Post signings and extensions (default: yes)" },
+      { type: OptionType.BOOLEAN, name: "games", description: "Post the day's games and where to watch them each morning (default: no)" },
     ],
   },
   {
@@ -69,6 +72,14 @@ export const COMMANDS = [
       { type: OptionType.STRING, name: "post", description: "Link to the r/hockey post", required: true },
     ],
   },
+  {
+    name: "games",
+    description: "Show a day's NHL games and where they're on TV.",
+    options: [
+      { type: OptionType.STRING, name: "day", description: "Today (default), tomorrow or a date", autocomplete: true },
+      { type: OptionType.STRING, name: "team", description: "Only this team's game", autocomplete: true },
+    ],
+  },
 ] as const;
 
 export async function handleCommand(
@@ -78,6 +89,7 @@ export async function handleCommand(
 ): Promise<InteractionResponse> {
   const name = interaction.data?.name;
   if (name === "ping") return reply("🏒 Pong! NHL Trade Tracker is online.");
+  if (name === "games") return games(ctx, interaction);
 
   const { guild_id: guildId, channel_id: channelId } = interaction;
   if (!guildId || !channelId) return reply("This command only works in a server channel.");
@@ -103,6 +115,11 @@ export async function handleAutocomplete(interaction: Interaction, env: Env): Pr
 
   if (interaction.data?.name === "subscribe") {
     choices = teamChoices(query);
+  } else if (interaction.data?.name === "games") {
+    choices =
+      focused?.name === "day"
+        ? dayChoices(query, Date.now())
+        : searchTeams(query).map((t) => ({ name: t.name, value: t.code }));
   } else if (interaction.data?.name === "unsubscribe" && interaction.channel_id) {
     choices = await subscribedChoices(env.DB, interaction.channel_id, query);
   }
@@ -119,8 +136,10 @@ async function subscribe(db: D1Database, guildId: string, channelId: string, int
   if (!teamCode) return reply(`❌ I couldn't find a team called "${teamInput}". Pick one from the list.`);
 
   const optionFor: Record<TransactionType, string> = { trade: "trades", waiver: "waivers", signing: "signings" };
-  const types = ALL_TYPES.filter((t) => booleanOption(interaction, optionFor[t]) ?? true);
-  if (types.length === 0) return reply("❌ Pick at least one of trades, waivers or signings.");
+  const types: PostType[] = ALL_TYPES.filter((t) => booleanOption(interaction, optionFor[t]) ?? true);
+  // The daily schedule is opt-in: a morning post every game day is noisier than news.
+  if (booleanOption(interaction, "games") === true) types.push("games");
+  if (types.length === 0) return reply("❌ Pick at least one of trades, waivers, signings or games.");
 
   const result = await upsertSubscription(db, { guildId, channelId, teamCode, types });
   const verb = result === "created" ? "will now get" : "now gets";
@@ -209,6 +228,62 @@ function describeReplay(outcome: Outcome, title: string): string {
     lines.push(`Nothing new to post: no channel in this server follows these teams for ${event.type}s, or they already have it.`);
   }
   return `${lines.join("\n")}\n${quoted}`;
+}
+
+/** Answers straight away (publicly: everyone wants to know what's on), then fills in the schedule. */
+function games(ctx: ExecutionContext, interaction: Interaction): InteractionResponse {
+  const dayInput = stringOption(interaction, "day");
+  const date = parseDay(dayInput, Date.now());
+  if (!date) return reply(`❌ I don't understand the day "${dayInput}". Try today, tomorrow or a date like 2026-10-10.`);
+
+  const teamInput = stringOption(interaction, "team");
+  const team = teamInput ? resolveTeam(teamInput)?.code : undefined;
+  if (teamInput && !team) return reply(`❌ I couldn't find a team called "${teamInput}". Pick one from the list.`);
+
+  ctx.waitUntil(
+    (async () => {
+      let body;
+      try {
+        const day = await fetchDay(date);
+        const mine = team ? day.games.filter((g) => g.away === team || g.home === team) : day.games;
+        // "Next games" only makes sense league-wide; a team filter would need more lookups.
+        const next = mine.length === 0 && !team ? { nextDay: day.nextDay, nextWeek: day.nextWeek } : {};
+        body = buildScheduleMessage({ date, games: mine, team, ...next });
+      } catch (err) {
+        console.error("games failed", err);
+        body = {
+          content:
+            err instanceof NhlError
+              ? "⏳ I couldn't reach NHL.com just now. Try again in a minute."
+              : "❌ Something went wrong getting the schedule.",
+        };
+      }
+      await editOriginalResponse(interaction.application_id, interaction.token, body);
+    })(),
+  );
+  return { type: InteractionResponseType.DEFERRED_CHANNEL_MESSAGE_WITH_SOURCE };
+}
+
+/** "today", "tomorrow", "yesterday" or YYYY-MM-DD → an Eastern date. */
+export function parseDay(input: string, now: number): string | undefined {
+  const s = input.trim().toLowerCase();
+  if (!s || s === "today") return easternDate(now);
+  if (s === "tomorrow") return easternDate(now, 1);
+  if (s === "yesterday") return easternDate(now, -1);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s) && !Number.isNaN(Date.parse(`${s}T12:00:00Z`))) return s;
+  return undefined;
+}
+
+/** Today, tomorrow and the rest of the week, labelled ("Today · Saturday, Oct 10"). */
+function dayChoices(query: string, now: number): Choice[] {
+  const q = query.trim().toLowerCase();
+  const choices = Array.from({ length: 8 }, (_, i) => {
+    const date = easternDate(now, i);
+    const label = i === 0 ? `Today · ${formatDay(date)}` : i === 1 ? `Tomorrow · ${formatDay(date)}` : formatDay(date);
+    return { name: label, value: date };
+  });
+  if (/^\d{4}-\d{2}-\d{2}$/.test(q)) return [{ name: formatDay(q), value: q }];
+  return choices.filter((c) => !q || c.name.toLowerCase().includes(q) || c.value.includes(q));
 }
 
 function teamChoices(query: string): Choice[] {
