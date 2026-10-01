@@ -26,7 +26,8 @@ A Discord bot that posts **confirmed** NHL trades, waiver moves and signings to 
 | `/unsubscribe team:<team>` | Manage Server | Stop following a team. Autocomplete lists only this channel's teams, plus **Remove all**. |
 | `/subscriptions` | Everyone | List what this channel follows. |
 | `/replay post:<link>` | Manage Server | Run an r/hockey post through the filter. If it's a confirmed move, post it to this server's subscribed channels (even if it's old), otherwise say why not. Handy for testing a new channel. |
-| `/games [day] [team]` | Everyone | A day's games (today by default) with start times in your time zone and the US/Canadian TV networks. Visible to the whole channel. Also works in DMs. |
+| `/games [day] [team] [country]` | Everyone | A day's games (today by default) with start times in your time zone and where they're on TV, grouped under 🇺🇸 and 🇨🇦. `country:` shows only US or only Canadian channels for this one call; without it, the channel's `/tv` setting applies. Visible to the whole channel. Also works in DMs. |
+| `/tv country:<United States \| Canada \| Both>` | Manage Server | Choose which country's TV channels this channel's game posts show (the morning post and `/games`). Saved per channel; `/subscriptions` shows it. |
 | `/ping` | Everyone | Check the bot is online. |
 
 Subscriptions belong to a **channel**, so one server can have `#leafs-news` following Toronto and `#league-wide` following all teams. Replies are visible only to the person who ran the command. Server admins can change who is allowed to use each command in **Server Settings → Integrations**.
@@ -62,7 +63,29 @@ For the Knies–Marchenko trade, LeBrun's "proposed … not a done deal yet" and
 
 Channels that subscribe with `games:True` get the day's games every morning at 15:00 UTC (11 am Eastern in summer, 10 am in winter). A channel following ⭐ All teams gets the whole slate; one following specific teams gets only their games, and nothing on days they don't play. The schedule comes from NHL.com's public API, which groups games by Eastern date, so a 10 pm Pacific game is part of "today" even though it starts after midnight UTC.
 
-Each line has the start time (a Discord timestamp, so everyone sees their own time zone), the matchup linking to NHL.com's Game Center, national networks for the US and Canada, and up to three regional networks. A `daily_posts` row per day and channel means a rerun never posts twice, and if NHL.com is down at 15:00 the 2-minute cron retries until 18:00 UTC.
+Each game shows its start time and matchup, then one line per country:
+
+```
+7:00 PM · PHI @ BOS
+🇺🇸 NHL Network · NBC Sports Philadelphia (PHI) · NESN (BOS)
+↳ Also on ESPN+ outside the PHI and BOS areas
+🇨🇦 Sportsnet · TVA Sports (French)
+```
+
+National channels come first. A team in brackets marks that team's local channel, which usually only airs in its home region. French-language Canadian channels (TVA Sports, RDS) are labelled. NHL.com's network codes are turned into names in `src/games/networks.ts`; a code that isn't listed there is shown as NHL.com sends it. Use `/tv` to show only US or only Canadian channels in a channel.
+
+**ESPN+ (out-of-market).** Under the ESPN/NHL deal, ESPN+ ("NHL Power Play", in the ESPN Select and Unlimited plans) streams every game that isn't a US national exclusive, blacked out in the teams' home areas. NHL.com doesn't list this per game, so `src/games/espn.ts` works it out:
+
+| NHL.com's US listing | Shown as |
+|---|---|
+| Only local channels, or NHL Network | ↳ Also on ESPN+ outside the (US teams') areas |
+| ESPN+ · Hulu · Disney+ | Listed as networks already: an ESPN streaming exclusive |
+| ESPN, ABC, TNT, truTV or HBO Max | No ESPN+ note: a national exclusive (ESPN/ABC need ESPN Unlimited, TNT is on HBO Max) |
+| A national exclusive *and* a local channel | No note: we can't tell how ESPN handles these |
+
+The bot can't know where a viewer is, so it names the blacked-out areas rather than saying whether a game is blacked out for you. Finished games get no note.
+
+The start time is a Discord timestamp, so everyone sees it in their own time zone, and the matchup links to NHL.com's Game Center. A `daily_posts` row per day and channel means a rerun never posts twice, and if NHL.com is down at 15:00 the 2-minute cron retries until 18:00 UTC.
 
 ## Setup
 
@@ -136,6 +159,9 @@ src/news/embed.ts        The Discord embed for a move
 src/discord/api.ts       Outgoing Discord REST calls
 src/sources/nhl.ts       NHL.com schedule API: games, broadcasts, Eastern dates
 src/games/format.ts      The schedule embed
+src/games/networks.ts    Readable names for NHL.com's network codes (SNP → Sportsnet Pacific)
+src/games/espn.ts        Whether a game is on ESPN+ out-of-market, and where it's blacked out
+src/db/settings.ts       Per-channel settings (TV country)
 src/games/daily.ts       The daily schedule post (once per day and channel, retried if NHL.com is down)
 src/db/daily.ts          Which channels already got each day's schedule
 migrations/              D1 schema

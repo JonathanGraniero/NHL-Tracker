@@ -49,6 +49,12 @@ export function getTeam(code: string): Team | undefined {
   return BY_CODE.get(code.toUpperCase());
 }
 
+const CANADIAN = new Set(["CGY", "EDM", "MTL", "OTT", "TOR", "VAN", "WPG"]);
+
+export function isCanadianTeam(code: string): boolean {
+  return CANADIAN.has(code.toUpperCase());
+}
+
 const normalize = (s: string) =>
   s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").trim();
 

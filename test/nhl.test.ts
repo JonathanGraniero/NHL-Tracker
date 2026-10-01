@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { buildScheduleMessage, gameLine } from "../src/games/format";
+import { buildScheduleMessage, gameBlock } from "../src/games/format";
+import { networkLabel } from "../src/games/networks";
 import { easternDate, formatDay, parseWeek, type Broadcast, type Game } from "../src/sources/nhl";
 import { WEEK } from "./helpers/nhl";
 
@@ -48,28 +49,101 @@ describe("easternDate", () => {
   });
 });
 
-describe("gameLine", () => {
-  it("shows the start time, matchup, national networks per country, then local ones", () => {
+describe("gameBlock", () => {
+  it("puts the time and matchup on one line, then each country's channels under its flag", () => {
     const g = game("2026-10-10", "PHI", "BOS");
-    expect(gameLine(g)).toBe(
-      `<t:${Date.parse("2026-10-10T17:00:00Z") / 1000}:t> **[PHI @ BOS](${g.url})** · 🇺🇸 NHLN · 🇨🇦 SN, TVAS · local: NBCSP, NESN`,
+    expect(gameBlock(g)).toBe(
+      [
+        `<t:${Date.parse("2026-10-10T17:00:00Z") / 1000}:t> · **[PHI @ BOS](${g.url})**`,
+        "🇺🇸 NHL Network · NBC Sports Philadelphia (PHI) · NESN (BOS)",
+        "↳ Also on ESPN+ outside the PHI and BOS areas",
+        "🇨🇦 Sportsnet · TVA Sports (French)",
+      ].join("\n"),
     );
   });
 
-  it("caps local networks", () => {
-    const g = game("2026-10-10", "CBJ", "STL");
-    expect(gameLine(g)).toMatch(/local: \S+, \S+, \S+ \+1$/);
+  it("never lists a Canadian channel on the US line, or the other way round", () => {
+    const g = game("2026-10-10", "PHI", "BOS");
+    const lines = gameBlock(g).split("\n");
+    const us = lines.find((l) => l.startsWith("🇺🇸"))!;
+    const ca = lines.find((l) => l.startsWith("🇨🇦"))!;
+    expect(us).not.toMatch(/Sportsnet|TVA|TSN|RDS/);
+    expect(ca).not.toMatch(/NHL Network|NESN|NBC|ESPN/);
+  });
+
+  it("shows one country when asked", () => {
+    const g = game("2026-10-10", "PHI", "BOS");
+    expect(gameBlock(g, { country: "US" })).not.toContain("🇨🇦");
+    expect(gameBlock(g, { country: "US" })).not.toContain("TVA");
+    expect(gameBlock(g, { country: "CA" }).split("\n").slice(1)).toEqual(["🇨🇦 Sportsnet · TVA Sports (French)"]);
+  });
+
+  it("names a channel once when it carries both teams", () => {
+    const g = game("2026-10-13", "VGK", "NSH");
+    expect(gameBlock(g).split("\n")[1]).toBe("🇺🇸 Scripps Sports (VGK, NSH)");
+  });
+
+  it("can leave out team channels to save space", () => {
+    const g = game("2026-10-10", "PHI", "BOS");
+    expect(gameBlock(g, { nationalOnly: true }).split("\n").slice(1)).toEqual([
+      "🇺🇸 NHL Network",
+      "↳ Also on ESPN+ outside the PHI and BOS areas",
+      "🇨🇦 Sportsnet · TVA Sports (French)",
+    ]);
   });
 
   it("shows scores, live games and postponements instead of a start time", () => {
     const g = game("2026-10-07", "PIT", "WSH");
-    expect(gameLine({ ...g, state: "FINAL", awayScore: 3, homeScore: 2 })).toMatch(/^Final 3–2 \*\*\[PIT @ WSH\]/);
-    expect(gameLine({ ...g, state: "LIVE", awayScore: 1, homeScore: 0 })).toMatch(/^🔴 Live 1–0 /);
-    expect(gameLine({ ...g, scheduleState: "PPD" })).toBe(`Postponed **[PIT @ WSH](${g.url})**`);
+    expect(gameBlock({ ...g, state: "FINAL", awayScore: 3, homeScore: 2 })).toMatch(/^Final 3–2 · \*\*\[PIT @ WSH\]/);
+    expect(gameBlock({ ...g, state: "LIVE", awayScore: 1, homeScore: 0 })).toMatch(/^🔴 Live 1–0 · /);
+    expect(gameBlock({ ...g, scheduleState: "PPD" })).toBe(`Postponed · **[PIT @ WSH](${g.url})**`);
   });
 
   it("marks preseason games", () => {
-    expect(gameLine({ ...game("2026-10-07", "PIT", "WSH"), gameType: 1 })).toContain("(preseason)");
+    expect(gameBlock({ ...game("2026-10-07", "PIT", "WSH"), gameType: 1 })).toContain("(preseason)");
+  });
+});
+
+describe("ESPN+ note", () => {
+  const note = (g: Game, opts = {}) => gameBlock(g, opts).split("\n").find((l) => l.includes("ESPN+"));
+
+  it("names only US teams' areas", () => {
+    expect(note(game("2026-10-08", "NSH", "MTL"))).toBe("↳ Also on ESPN+ outside the NSH area");
+  });
+
+  it("stays off national exclusives, which already list where they stream", () => {
+    expect(note(game("2026-10-07", "PIT", "WSH"))).toBeUndefined(); // TNT · HBO Max
+    expect(note(game("2026-10-13", "NJD", "DET"))).toBeUndefined(); // ESPN
+    expect(gameBlock(game("2026-10-08", "SJS", "STL")).split("\n")[1]).toBe("🇺🇸 ESPN+ · Hulu · Disney+");
+  });
+
+  it("stays off games it can't classify confidently", () => {
+    expect(note(game("2026-10-13", "BOS", "SJS"))).toBeUndefined(); // ESPN + NESN
+  });
+
+  it("stays off finished games and Canadian-only listings", () => {
+    expect(note({ ...game("2026-10-10", "PHI", "BOS"), state: "OFF" })).toBeUndefined();
+    expect(note(game("2026-10-10", "PHI", "BOS"), { country: "CA" })).toBeUndefined();
+  });
+
+  it("gets its own US line when NHL.com lists no US channels", () => {
+    const g = game("2026-10-08", "PHI", "OTT");
+    const canadianOnly = { ...g, broadcasts: g.broadcasts.filter((b) => b.country === "CA") };
+    expect(gameBlock(canadianOnly).split("\n")[1]).toBe("🇺🇸 ESPN+ outside the PHI area");
+  });
+});
+
+describe("networkLabel", () => {
+  it.each([
+    ["TVAS", [], "TVA Sports (French)"],
+    ["RDS", ["MTL"], "RDS (MTL, French)"],
+    ["NESN", ["BOS"], "NESN (BOS)"],
+    ["SNP", [], "Sportsnet Pacific"],
+    ["MSG-B", ["BUF"], "MSG Buffalo (BUF)"],
+    ["HBO MAX", [], "HBO Max"],
+    ["CBJNHL", ["CBJ"], "CBJNHL (CBJ)"], // unknown codes are shown as NHL.com sends them
+  ])("%s %j → %s", (code, teams, label) => {
+    expect(networkLabel(code, teams)).toBe(label);
   });
 });
 
@@ -80,16 +154,23 @@ describe("buildScheduleMessage", () => {
     const embed = buildScheduleMessage({ date: "2026-10-13", games }).embeds![0]!;
     expect(embed.title).toBe("🏒 NHL games · Tuesday, Oct 13");
     expect(embed.url).toBe("https://www.nhl.com/schedule/2026-10-13");
-    expect(embed.description!.split("\n")).toHaveLength(16);
+    expect(embed.description!.split("\n\n")).toHaveLength(16);
     expect(embed.description!.length).toBeLessThanOrEqual(4096);
   });
 
-  it("drops local networks rather than overflowing", () => {
+  it("drops team channels rather than overflowing", () => {
     const busy: Game[] = Array.from({ length: 16 }, () => ({
       ...game("2026-10-10", "CBJ", "STL"),
       broadcasts: [...Array(30).keys()].map((i): Broadcast => ({ country: "US", market: "N", network: `NETWORK-${i}` })),
     }));
     expect(buildScheduleMessage({ date: "2026-10-10", games: busy }).embeds![0]!.description!.length).toBeLessThanOrEqual(4000);
+  });
+
+  it("explains the team tags and says which country's channels it shows", () => {
+    const games = day("2026-10-10");
+    const footer = (country?: "US" | "CA") => buildScheduleMessage({ date: "2026-10-10", games, country }).embeds![0]!.footer!.text;
+    expect(footer()).toBe("Times are in your time zone · TV from NHL.com · (TEAM) = that team's local channel");
+    expect(footer("US")).toContain("US TV from NHL.com");
   });
 
   it("titles a team's schedule with the team and its colour", () => {

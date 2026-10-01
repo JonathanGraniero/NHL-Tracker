@@ -1,6 +1,7 @@
 import { buildScheduleMessage } from "./format";
 import { createMessage } from "../discord/api";
 import { recordDailyPost, wasPostedOn } from "../db/daily";
+import { getTvCountry } from "../db/settings";
 import { getState, setState } from "../db/events";
 import { ALL_TEAMS, channelsFollowing } from "../db/subscriptions";
 import { NhlError, easternDate, fetchDay } from "../sources/nhl";
@@ -52,7 +53,12 @@ export async function runDailyGames(env: Env, now: number): Promise<void> {
       if (mine.length === 0) continue;
 
       const team = !allTeams && teamCodes.length === 1 ? teamCodes[0] : undefined;
-      const sent = await createMessage(env.DISCORD_BOT_TOKEN, channelId, buildScheduleMessage({ date: day, games: mine, team }));
+      const country = await getTvCountry(env.DB, channelId);
+      const sent = await createMessage(
+        env.DISCORD_BOT_TOKEN,
+        channelId,
+        buildScheduleMessage({ date: day, games: mine, team, country }),
+      );
       if (sent.ok) {
         await recordDailyPost(env.DB, { day, channelId, messageId: sent.id }, now);
         posted++;

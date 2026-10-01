@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import worker from "../src/index";
 import { DAILY_CRON, inDailyWindow, runDailyGames } from "../src/games/daily";
 import { ALL_TEAMS, upsertSubscription } from "../src/db/subscriptions";
+import { getTvCountry } from "../src/db/settings";
 import type { PostType } from "../src/types";
 import { createTestD1 } from "./helpers/d1";
 import { createTestBot, requestJson, type TestBot } from "./helpers/discord";
@@ -69,12 +70,12 @@ describe("daily games post", () => {
     expect(sent.map((s) => s.channelId).sort()).toEqual(["leafs", "league"]);
     const league = sent.find((s) => s.channelId === "league")!.body.embeds![0]!;
     expect(league.title).toBe("🏒 NHL games · Saturday, Oct 10");
-    expect(league.description!.split("\n")).toHaveLength(14);
+    expect(league.description!.split("\n\n")).toHaveLength(14);
 
     const leafs = sent.find((s) => s.channelId === "leafs")!.body.embeds![0]!;
     expect(leafs.title).toBe("🏒 Toronto Maple Leafs · Saturday, Oct 10");
     expect(leafs.description).toContain("TOR @ COL");
-    expect(leafs.description!.split("\n")).toHaveLength(1);
+    expect(leafs.description!.split("\n\n")).toHaveLength(1);
   });
 
   it("posts each day once, however often it runs", async () => {
@@ -164,14 +165,24 @@ describe("/games", () => {
     expect(await games({ day: "2026-10-10" })).toEqual({ type: 5 });
     await bot.settle();
     expect(edits[0]?.embeds?.[0]?.title).toBe("🏒 NHL games · Saturday, Oct 10");
-    expect(edits[0]?.embeds?.[0]?.description?.split("\n")).toHaveLength(14);
+    expect(edits[0]?.embeds?.[0]?.description?.split("\n\n")).toHaveLength(14);
   });
 
   it("narrows to one team", async () => {
     await games({ day: "2026-10-10", team: "Leafs" });
     await bot.settle();
     expect(edits[0]?.embeds?.[0]?.title).toBe("🏒 Toronto Maple Leafs · Saturday, Oct 10");
-    expect(edits[0]?.embeds?.[0]?.description).toMatch(/^<t:\d+:t> \*\*\[TOR @ COL\]/);
+    expect(edits[0]?.embeds?.[0]?.description).toMatch(/^<t:\d+:t> · \*\*\[TOR @ COL\]/);
+  });
+
+  it("shows only one country's channels when asked", async () => {
+    await games({ day: "2026-10-10", country: "US" });
+    await bot.settle();
+    const embed = edits[0]!.embeds![0]!;
+    expect(embed.description).toContain("🇺🇸");
+    expect(embed.description).not.toContain("🇨🇦");
+    expect(embed.description).not.toContain("TVA Sports");
+    expect(embed.footer?.text).toContain("US TV");
   });
 
   it("says when the schedule picks up again in the off-season", async () => {
@@ -215,5 +226,62 @@ describe("/subscribe games option", () => {
     expect(
       await bot.command("subscribe", { team: "*", trades: false, waivers: false, signings: false, games: true }),
     ).toBe("✅ This channel will now get **the daily schedule** for **All teams**.");
+  });
+});
+
+describe("/tv (per-channel TV country)", () => {
+  const usLines = (body: MessageBody) => body.embeds![0]!.description!.includes("🇺🇸");
+  const caLines = (body: MessageBody) => body.embeds![0]!.description!.includes("🇨🇦");
+
+  it("saves the choice per channel, and Both clears it", async () => {
+    expect(await bot.command("tv", { country: "US" })).toBe("✅ Game posts in this channel will show 🇺🇸 US TV channels only.");
+    expect(await getTvCountry(db, "channel-1")).toBe("US");
+    expect(await getTvCountry(db, "channel-2")).toBeUndefined();
+
+    expect(await bot.command("tv", { country: "BOTH" })).toContain("both 🇺🇸 US and 🇨🇦 Canadian");
+    expect(await getTvCountry(db, "channel-1")).toBeUndefined();
+  });
+
+  it("is limited to Manage Server and servers", async () => {
+    const { COMMANDS } = await import("../src/discord/commands");
+    const cmd = COMMANDS.find((c) => c.name === "tv") as { default_member_permissions?: string; contexts?: number[] };
+    expect(cmd.default_member_permissions).toBe("32");
+    expect(cmd.contexts).toEqual([0]);
+    expect(await bot.command("tv", { country: "US" }, { guildId: null })).toContain("only works in a server");
+  });
+
+  it("shows on /subscriptions", async () => {
+    await sub("channel-1", "TOR");
+    await bot.command("tv", { country: "CA" });
+    expect(await bot.command("subscriptions")).toContain("📺 Game posts show 🇨🇦 Canadian TV channels only");
+  });
+
+  it("applies to the daily post", async () => {
+    await sub("us-only", ALL_TEAMS);
+    await sub("both", ALL_TEAMS);
+    await bot.command("tv", { country: "US" }, { channelId: "us-only" });
+    await runDailyGames(bot.env, SATURDAY_MORNING);
+
+    const post = (id: string) => sent.find((s) => s.channelId === id)!.body;
+    expect(usLines(post("us-only"))).toBe(true);
+    expect(caLines(post("us-only"))).toBe(false);
+    expect(post("us-only").embeds![0]!.description).not.toContain("TVA Sports");
+    expect(caLines(post("both"))).toBe(true);
+  });
+
+  it("is the default for /games in that channel, and an explicit choice overrides it", async () => {
+    await bot.command("tv", { country: "US" }, { channelId: "c1" });
+    const run = async (options: Record<string, string>) => {
+      edits = [];
+      await bot.send({
+        id: "1", application_id: "123", token: "tok", type: 2, guild_id: "g1", channel_id: "c1",
+        data: { name: "games", options: Object.entries(options).map(([name, value]) => ({ name, type: 3, value })) },
+      });
+      await bot.settle();
+      return edits[0]!;
+    };
+    expect(caLines(await run({ day: "2026-10-10" }))).toBe(false);
+    expect(caLines(await run({ day: "2026-10-10", country: "BOTH" }))).toBe(true);
+    expect(usLines(await run({ day: "2026-10-10", country: "CA" }))).toBe(false);
   });
 });

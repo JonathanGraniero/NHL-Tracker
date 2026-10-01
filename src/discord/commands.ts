@@ -15,7 +15,8 @@ import {
   removeSubscription,
   upsertSubscription,
 } from "../db/subscriptions";
-import { ALL_TYPES, describeTypes, type PostType, type TransactionType } from "../types";
+import { getTvCountry, setTvCountry } from "../db/settings";
+import { ALL_TYPES, describeTypes, isCountry, type Country, type PostType, type TransactionType } from "../types";
 import { editOriginalResponse, type MessageBody } from "./api";
 import { buildScheduleMessage } from "../games/format";
 import { NhlError, easternDate, fetchDay, formatDay } from "../sources/nhl";
@@ -29,6 +30,14 @@ const MANAGE_GUILD = String(1 << 5);
 const GUILD_ONLY = [0];
 /** Autocomplete value meaning "remove every subscription in this channel". */
 const CLEAR_ALL = "__clear__";
+/** Choice value for "show both countries' TV channels". */
+const BOTH = "BOTH";
+
+const COUNTRY_CHOICES = [
+  { name: "🇺🇸 United States", value: "US" },
+  { name: "🇨🇦 Canada", value: "CA" },
+  { name: "🇺🇸🇨🇦 Both", value: BOTH },
+];
 
 /** Slash command definitions, uploaded to Discord by scripts/register-commands.ts. */
 export const COMMANDS = [
@@ -78,6 +87,21 @@ export const COMMANDS = [
     options: [
       { type: OptionType.STRING, name: "day", description: "Today (default), tomorrow or a date", autocomplete: true },
       { type: OptionType.STRING, name: "team", description: "Only this team's game", autocomplete: true },
+      {
+        type: OptionType.STRING,
+        name: "country",
+        description: "Only show TV channels in this country (default: this channel's /tv setting)",
+        choices: COUNTRY_CHOICES,
+      },
+    ],
+  },
+  {
+    name: "tv",
+    description: "Choose which country's TV channels game posts in this channel show.",
+    default_member_permissions: MANAGE_GUILD,
+    contexts: GUILD_ONLY,
+    options: [
+      { type: OptionType.STRING, name: "country", description: "Whose TV channels to list", required: true, choices: COUNTRY_CHOICES },
     ],
   },
 ] as const;
@@ -89,7 +113,7 @@ export async function handleCommand(
 ): Promise<InteractionResponse> {
   const name = interaction.data?.name;
   if (name === "ping") return reply("🏒 Pong! NHL Trade Tracker is online.");
-  if (name === "games") return games(ctx, interaction);
+  if (name === "games") return games(env.DB, ctx, interaction);
 
   const { guild_id: guildId, channel_id: channelId } = interaction;
   if (!guildId || !channelId) return reply("This command only works in a server channel.");
@@ -101,6 +125,8 @@ export async function handleCommand(
       return unsubscribe(env.DB, channelId, interaction);
     case "subscriptions":
       return showSubscriptions(env.DB, channelId);
+    case "tv":
+      return tv(env.DB, guildId, channelId, interaction);
     case "replay":
       return replay(env, ctx, guildId, interaction);
     default:
@@ -179,7 +205,25 @@ async function showSubscriptions(db: D1Database, channelId: string) {
     a.teamCode === ALL_TEAMS ? -1 : b.teamCode === ALL_TEAMS ? 1 : teamLabel(a.teamCode).localeCompare(teamLabel(b.teamCode)),
   );
   const lines = subs.map((s) => `• **${teamLabel(s.teamCode)}**: ${describeTypes(s.types)}`);
+  const country = await getTvCountry(db, channelId);
+  if (country) lines.push(`\n📺 Game posts show ${countryLabel(country)} TV channels only (\`/tv\` to change).`);
   return reply(`**This channel follows:**\n${lines.join("\n")}`);
+}
+
+async function tv(db: D1Database, guildId: string, channelId: string, interaction: Interaction) {
+  const input = stringOption(interaction, "country").toUpperCase();
+  if (input !== BOTH && !isCountry(input)) return reply("❌ Pick United States, Canada or Both.");
+  const country = input === BOTH ? undefined : (input as Country);
+  await setTvCountry(db, { guildId, channelId, country });
+  return reply(
+    country
+      ? `✅ Game posts in this channel will show ${countryLabel(country)} TV channels only.`
+      : "✅ Game posts in this channel will show both 🇺🇸 US and 🇨🇦 Canadian TV channels.",
+  );
+}
+
+function countryLabel(country: Country): string {
+  return country === "US" ? "🇺🇸 US" : "🇨🇦 Canadian";
 }
 
 /** Answers straight away ("thinking…"), then fetches and posts in the background. */
@@ -231,7 +275,7 @@ function describeReplay(outcome: Outcome, title: string): string {
 }
 
 /** Answers straight away (publicly: everyone wants to know what's on), then fills in the schedule. */
-function games(ctx: ExecutionContext, interaction: Interaction): InteractionResponse {
+function games(db: D1Database, ctx: ExecutionContext, interaction: Interaction): InteractionResponse {
   const dayInput = stringOption(interaction, "day");
   const date = parseDay(dayInput, Date.now());
   if (!date) return reply(`❌ I don't understand the day "${dayInput}". Try today, tomorrow or a date like 2026-10-10.`);
@@ -240,15 +284,24 @@ function games(ctx: ExecutionContext, interaction: Interaction): InteractionResp
   const team = teamInput ? resolveTeam(teamInput)?.code : undefined;
   if (teamInput && !team) return reply(`❌ I couldn't find a team called "${teamInput}". Pick one from the list.`);
 
+  // An explicit choice wins (BOTH included); otherwise the channel's /tv setting.
+  const countryInput = stringOption(interaction, "country").toUpperCase();
+  const channelId = interaction.guild_id ? interaction.channel_id : undefined;
+
   ctx.waitUntil(
     (async () => {
       let body: MessageBody;
       try {
+        const country: Country | undefined = isCountry(countryInput)
+          ? countryInput
+          : !countryInput && channelId
+            ? await getTvCountry(db, channelId)
+            : undefined;
         const day = await fetchDay(date);
         const mine = team ? day.games.filter((g) => g.away === team || g.home === team) : day.games;
         // "Next games" only makes sense league-wide; a team filter would need more lookups.
         const next = mine.length === 0 && !team ? { nextDay: day.nextDay, nextWeek: day.nextWeek } : {};
-        body = buildScheduleMessage({ date, games: mine, team, ...next });
+        body = buildScheduleMessage({ date, games: mine, team, country, ...next });
       } catch (err) {
         console.error("games failed", err);
         body = {
