@@ -22,6 +22,18 @@ export interface MessageBody {
 
 export type SendResult = { ok: true; id: string } | { ok: false; status: number; error: string };
 
+/** The part of Discord's Message object the bot reads. */
+interface DiscordMessage {
+  id: string;
+}
+
+/** Body of a 429 response. https://discord.com/developers/docs/topics/rate-limits */
+interface RateLimitResponse {
+  /** Seconds to wait. */
+  retry_after: number;
+  global?: boolean;
+}
+
 /** Posts a message to a channel as the bot. */
 export async function createMessage(botToken: string, channelId: string, body: MessageBody): Promise<SendResult> {
   const res = await discordFetch(`${API}/channels/${channelId}/messages`, {
@@ -30,7 +42,7 @@ export async function createMessage(botToken: string, channelId: string, body: M
     body: { allowed_mentions: { parse: [] }, ...body },
   });
   if (!res.ok) return { ok: false, status: res.status, error: await res.text() };
-  return { ok: true, id: ((await res.json()) as { id: string }).id };
+  return { ok: true, id: (await res.json<DiscordMessage>()).id };
 }
 
 /** Replaces the "thinking…" placeholder of a deferred interaction reply. */
@@ -45,7 +57,7 @@ export async function editOriginalResponse(appId: string, interactionToken: stri
 /** fetch() with JSON encoding and a single retry when Discord rate-limits us briefly. */
 async function discordFetch(
   url: string,
-  init: { method: string; headers?: Record<string, string>; body: unknown },
+  init: { method: "POST" | "PATCH"; headers?: Record<string, string>; body: MessageBody },
 ): Promise<Response> {
   const request = () =>
     fetch(url, {
@@ -55,8 +67,8 @@ async function discordFetch(
     });
   const res = await request();
   if (res.status !== 429) return res;
-  const retryAfter = Number(((await res.clone().json()) as { retry_after?: number }).retry_after ?? 1);
+  const retryAfter = (await res.clone().json<Partial<RateLimitResponse>>()).retry_after ?? 1;
   if (retryAfter > 5) return res;
-  await new Promise((resolve) => setTimeout(resolve, retryAfter * 1000));
+  await new Promise<void>((resolve) => setTimeout(resolve, retryAfter * 1000));
   return request();
 }

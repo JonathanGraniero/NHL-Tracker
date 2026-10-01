@@ -3,16 +3,24 @@ import { expect } from "vitest";
 // the real signature check instead of bypassing it.
 import worker from "../../src/index";
 import type { Env } from "../../src/env";
-import type { CommandOption, InteractionResponse } from "../../src/discord/types";
+import type { CommandOption, Interaction, InteractionResponse } from "../../src/discord/types";
 
-const toHex = (buf: ArrayBuffer) => Buffer.from(buf).toString("hex");
+const toHex = (buf: ArrayBuffer): string => [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("");
+
+/** An interaction as a test sends it: only `type` is required, so tests can also send PINGs and malformed payloads. */
+export type InteractionPayload = Pick<Interaction, "type"> & Partial<Omit<Interaction, "type">>;
+
+/** The JSON body of a request the code under test sent (for fetch mocks). */
+export function requestJson<T>(init: RequestInit | undefined): T {
+  return JSON.parse(String(init?.body)) as T;
+}
 
 export interface TestBot {
   env: Env;
   /** Collects ctx.waitUntil() work; await settle() to let it finish. */
   ctx: ExecutionContext;
   settle(): Promise<void>;
-  send(payload: unknown, opts?: { tamper?: boolean }): Promise<Response>;
+  send(payload: InteractionPayload, opts?: { tamper?: boolean }): Promise<Response>;
   /** Runs a slash command and returns the reply text. */
   command(name: string, options?: Record<string, string | boolean>, ctx?: Ctx): Promise<string>;
   /** Runs autocomplete for a command's focused option and returns the choices. */
@@ -35,12 +43,14 @@ export async function createTestBot(db: D1Database): Promise<TestBot> {
 
   let nextId = 1;
   const pending: Promise<unknown>[] = [];
-  const ctx = {
-    waitUntil: (p: Promise<unknown>) => void pending.push(p),
+  // Only the methods the Worker calls; the rest of ExecutionContext isn't used.
+  const fakeCtx: Pick<ExecutionContext, "waitUntil" | "passThroughOnException"> = {
+    waitUntil: (p) => void pending.push(p),
     passThroughOnException: () => {},
-  } as unknown as ExecutionContext;
+  };
+  const ctx = fakeCtx as ExecutionContext;
 
-  async function send(payload: unknown, opts: { tamper?: boolean } = {}) {
+  async function send(payload: InteractionPayload, opts: { tamper?: boolean } = {}): Promise<Response> {
     const body = JSON.stringify(payload);
     const timestamp = String(Math.floor(Date.now() / 1000));
     const sig = await crypto.subtle.sign("Ed25519", keys.privateKey, new TextEncoder().encode(timestamp + body));
@@ -52,7 +62,7 @@ export async function createTestBot(db: D1Database): Promise<TestBot> {
     return worker.fetch(req, env, ctx);
   }
 
-  function interaction(type: number, name: string, options: CommandOption[], ctx: Ctx) {
+  function interaction(type: number, name: string, options: CommandOption[], ctx: Ctx): InteractionPayload {
     return {
       id: String(nextId++),
       application_id: env.DISCORD_APPLICATION_ID,

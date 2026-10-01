@@ -4,6 +4,12 @@
 
 export type Market = "N" | "H" | "A";
 
+const MARKETS: readonly string[] = ["N", "H", "A"] satisfies Market[];
+
+function isMarket(value: string): value is Market {
+  return MARKETS.includes(value);
+}
+
 export interface Broadcast {
   /** "US" or "CA". */
   country: string;
@@ -54,7 +60,7 @@ export async function fetchWeek(date: string): Promise<ScheduleWeek> {
     headers: { "User-Agent": "nhl-trade-tracker (+https://github.com/JonathanGraniero/NHL-Trade-Tracker)" },
   });
   if (!res.ok) throw new NhlError(res.status);
-  return parseWeek(await res.json());
+  return parseWeek(await res.json<NhlScheduleResponse>());
 }
 
 export interface Day {
@@ -74,21 +80,49 @@ export async function fetchDay(date: string): Promise<Day> {
   return { games, nextDay, nextWeek };
 }
 
-interface RawGame {
+/** The parts of NHL.com's /v1/schedule/{date} response the bot reads. */
+export interface NhlScheduleResponse {
+  /** Start of the next week that has games. */
+  nextStartDate?: string;
+  gameWeek?: NhlScheduleDay[];
+}
+
+export interface NhlScheduleDay {
+  /** Eastern date, YYYY-MM-DD. */
+  date: string;
+  games?: NhlGame[];
+}
+
+export interface NhlGame {
   id: number;
   gameType: number;
   gameState: string;
   gameScheduleState: string;
   startTimeUTC: string;
   venue?: { default?: string };
-  awayTeam: { abbrev: string; score?: number };
-  homeTeam: { abbrev: string; score?: number };
-  tvBroadcasts?: { market: string; countryCode: string; network: string; sequenceNumber?: number }[];
+  awayTeam: NhlGameTeam;
+  homeTeam: NhlGameTeam;
+  tvBroadcasts?: NhlBroadcast[];
+  /** Path on nhl.com, e.g. "/gamecenter/pit-vs-wsh/2026/10/07/2026020053". */
   gameCenterLink?: string;
 }
 
-export function parseWeek(json: unknown): ScheduleWeek {
-  const raw = json as { nextStartDate?: string; gameWeek?: { date: string; games?: RawGame[] }[] };
+export interface NhlGameTeam {
+  abbrev: string;
+  /** Present once the game has started. */
+  score?: number;
+}
+
+export interface NhlBroadcast {
+  /** "N" national, "H" home, "A" away. */
+  market: string;
+  countryCode: string;
+  /** Sometimes has trailing spaces ("ABTV "). */
+  network: string;
+  sequenceNumber?: number;
+}
+
+export function parseWeek(raw: NhlScheduleResponse): ScheduleWeek {
   return {
     nextStartDate: raw.nextStartDate,
     days: (raw.gameWeek ?? []).map((d) => ({
@@ -98,11 +132,13 @@ export function parseWeek(json: unknown): ScheduleWeek {
   };
 }
 
-function parseGame(g: RawGame, day: string): Game {
+function parseGame(g: NhlGame, day: string): Game {
   const broadcasts = [...(g.tvBroadcasts ?? [])]
     .sort((a, b) => (a.sequenceNumber ?? 0) - (b.sequenceNumber ?? 0))
-    .map((b) => ({ country: b.countryCode, market: b.market as Market, network: b.network.trim() }))
-    .filter((b) => b.network.length > 0);
+    .flatMap((b): Broadcast[] => {
+      const network = b.network.trim();
+      return isMarket(b.market) && network ? [{ country: b.countryCode, market: b.market, network }] : [];
+    });
   return {
     id: g.id,
     day,
