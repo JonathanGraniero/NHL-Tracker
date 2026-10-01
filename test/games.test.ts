@@ -69,12 +69,12 @@ describe("daily games post", () => {
     expect(sent.map((s) => s.channelId).sort()).toEqual(["leafs", "league"]);
     const league = sent.find((s) => s.channelId === "league")!.body.embeds![0]!;
     expect(league.title).toBe("🏒 NHL games · Saturday, Oct 10");
-    expect(league.description!.split("\n")).toHaveLength(14);
+    expect(league.description!.split("\n\n")).toHaveLength(14);
 
     const leafs = sent.find((s) => s.channelId === "leafs")!.body.embeds![0]!;
     expect(leafs.title).toBe("🏒 Toronto Maple Leafs · Saturday, Oct 10");
     expect(leafs.description).toContain("TOR @ COL");
-    expect(leafs.description!.split("\n")).toHaveLength(1);
+    expect(leafs.description!.split("\n\n")).toHaveLength(1);
   });
 
   it("posts each day once, however often it runs", async () => {
@@ -164,14 +164,24 @@ describe("/games", () => {
     expect(await games({ day: "2026-10-10" })).toEqual({ type: 5 });
     await bot.settle();
     expect(edits[0]?.embeds?.[0]?.title).toBe("🏒 NHL games · Saturday, Oct 10");
-    expect(edits[0]?.embeds?.[0]?.description?.split("\n")).toHaveLength(14);
+    expect(edits[0]?.embeds?.[0]?.description?.split("\n\n")).toHaveLength(14);
   });
 
   it("narrows to one team", async () => {
     await games({ day: "2026-10-10", team: "Leafs" });
     await bot.settle();
     expect(edits[0]?.embeds?.[0]?.title).toBe("🏒 Toronto Maple Leafs · Saturday, Oct 10");
-    expect(edits[0]?.embeds?.[0]?.description).toMatch(/^<t:\d+:t> \*\*\[TOR @ COL\]/);
+    expect(edits[0]?.embeds?.[0]?.description).toMatch(/^<t:\d+:t> · \*\*\[TOR @ COL\]/);
+  });
+
+  it("shows only one country's channels when asked", async () => {
+    await games({ day: "2026-10-10", country: "US" });
+    await bot.settle();
+    const embed = edits[0]!.embeds![0]!;
+    expect(embed.description).toContain("🇺🇸");
+    expect(embed.description).not.toContain("🇨🇦");
+    expect(embed.description).not.toContain("TVA Sports");
+    expect(embed.footer?.text).toContain("US TV");
   });
 
   it("says when the schedule picks up again in the off-season", async () => {

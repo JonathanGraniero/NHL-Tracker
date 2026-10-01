@@ -1,11 +1,14 @@
 import { getTeam } from "../data/teams";
 import type { MessageBody } from "../discord/api";
+import { networkLabel } from "./networks";
 import { formatDay, type Broadcast, type Game } from "../sources/nhl";
 
-const FLAGS: Record<string, string> = { US: "🇺🇸", CA: "🇨🇦" };
-const COUNTRY_ORDER = ["US", "CA"];
-/** Regional networks are the noisy part of the listing; show this many per game. */
-const MAX_LOCAL = 3;
+export type Country = "US" | "CA";
+
+const COUNTRIES: readonly { code: Country; flag: string }[] = [
+  { code: "US", flag: "🇺🇸" },
+  { code: "CA", flag: "🇨🇦" },
+];
 /** Discord's embed description limit is 4096; leave room for the empty-slate note. */
 const MAX_DESCRIPTION = 4000;
 const NEUTRAL_COLOR = 0x2b2d31;
@@ -18,10 +21,12 @@ export interface ScheduleOptions {
   nextWeek?: string;
   /** Team the list was narrowed to (/games team:…), for the title and colour. */
   team?: string;
+  /** Only show this country's networks. Both countries when unset. */
+  country?: Country;
 }
 
 /** One embed listing a day's games, with start times in each viewer's time zone. */
-export function buildScheduleMessage({ date, games, nextDay, nextWeek, team }: ScheduleOptions): MessageBody {
+export function buildScheduleMessage({ date, games, nextDay, nextWeek, team, country }: ScheduleOptions): MessageBody {
   const teamName = team ? (getTeam(team)?.name ?? team) : undefined;
   const title = `🏒 ${teamName ?? "NHL games"} · ${formatDay(date)}`;
   const url = `https://www.nhl.com/schedule/${date}`;
@@ -36,11 +41,14 @@ export function buildScheduleMessage({ date, games, nextDay, nextWeek, team }: S
     return { embeds: [{ title, url, color, description: `No games${teamName ? ` for the ${teamName}` : ""}.${next}` }] };
   }
 
-  let description = games.map((g) => gameLine(g, MAX_LOCAL)).join("\n");
-  // A full 16-game night with long network lists can overflow: drop local networks, then truncate.
-  if (description.length > MAX_DESCRIPTION) description = games.map((g) => gameLine(g, 0)).join("\n");
+  let description = games.map((g) => gameBlock(g, { country })).join("\n\n");
+  // A full 16-game night with long network lists can overflow: drop team networks, then truncate.
+  if (description.length > MAX_DESCRIPTION) {
+    description = games.map((g) => gameBlock(g, { country, nationalOnly: true })).join("\n\n");
+  }
   if (description.length > MAX_DESCRIPTION) description = `${description.slice(0, MAX_DESCRIPTION - 1)}…`;
 
+  const where = country === "US" ? "US " : country === "CA" ? "Canadian " : "";
   return {
     embeds: [
       {
@@ -48,18 +56,30 @@ export function buildScheduleMessage({ date, games, nextDay, nextWeek, team }: S
         url,
         color,
         description,
-        footer: { text: "Times are in your time zone · broadcasts from NHL.com" },
+        footer: { text: `Times are in your time zone · ${where}TV from NHL.com · (TEAM) = that team's local channel` },
       },
     ],
   };
 }
 
-/** "<t:…:t> **[PHI @ BOS](…)** · 🇺🇸 NHLN · 🇨🇦 SN, TVAS · local: NESN, NBCSP" */
-export function gameLine(game: Game, maxLocal = MAX_LOCAL): string {
-  const matchup = `**[${game.away} @ ${game.home}](${game.url})**`;
-  const parts = [`${status(game)} ${matchup}${game.gameType === 1 ? " (preseason)" : ""}`];
-  if (game.scheduleState === "OK") parts.push(...broadcastParts(game.broadcasts, maxLocal));
-  return parts.join(" · ");
+/**
+ * A game and where to watch it, one line per country:
+ *
+ *   <t:…:t> · **[PHI @ BOS](…)**
+ *   🇺🇸 NHL Network · NBC Sports Philadelphia (PHI) · NESN (BOS)
+ *   🇨🇦 Sportsnet · TVA Sports (French) · RDS (MTL, French)
+ */
+export function gameBlock(game: Game, opts: { country?: Country; nationalOnly?: boolean } = {}): string {
+  const matchup = `**[${game.away} @ ${game.home}](${game.url})**${game.gameType === 1 ? " (preseason)" : ""}`;
+  const lines = [`${status(game)} · ${matchup}`];
+  if (game.scheduleState === "OK") {
+    for (const { code, flag } of COUNTRIES) {
+      if (opts.country && opts.country !== code) continue;
+      const networks = countryNetworks(game, code, opts.nationalOnly ?? false);
+      if (networks.length > 0) lines.push(`${flag} ${networks.join(" · ")}`);
+    }
+  }
+  return lines.join("\n");
 }
 
 function status(game: Game): string {
@@ -72,33 +92,29 @@ function status(game: Game): string {
   return `<t:${Math.floor(game.startTime / 1000)}:t>`;
 }
 
-/** National networks grouped by country, then a capped list of the teams' own networks. */
-function broadcastParts(broadcasts: readonly Broadcast[], maxLocal: number): string[] {
-  const parts: string[] = [];
-  const national = new Set<string>();
-  const countries = [...new Set(broadcasts.map((b) => b.country))].sort(
-    (a, b) => rank(COUNTRY_ORDER, a) - rank(COUNTRY_ORDER, b),
-  );
-  for (const country of countries) {
-    const networks = unique(broadcasts.filter((b) => b.country === country && b.market === "N").map((b) => b.network));
-    networks.forEach((n) => national.add(n));
-    if (networks.length > 0) parts.push(`${FLAGS[country] ?? country} ${networks.join(", ")}`);
+/** National networks first, then each team's own channel tagged with the team. */
+function countryNetworks(game: Game, country: string, nationalOnly: boolean): string[] {
+  const here = game.broadcasts.filter((b) => b.country === country);
+  const national = unique(here.filter((b) => b.market === "N").map((b) => b.network));
+  const out = national.map((n) => networkLabel(n));
+  if (nationalOnly) return out;
+
+  // Network → teams it carries this game for (Scripps can be both teams' channel).
+  const local = new Map<string, string[]>();
+  for (const b of here) {
+    if (b.market === "N" || national.includes(b.network)) continue;
+    const teams = local.get(b.network) ?? [];
+    if (!teams.includes(teamFor(game, b))) teams.push(teamFor(game, b));
+    local.set(b.network, teams);
   }
-  if (maxLocal > 0) {
-    const local = unique(broadcasts.filter((b) => b.market !== "N").map((b) => b.network)).filter((n) => !national.has(n));
-    if (local.length > 0) {
-      const extra = local.length > maxLocal ? ` +${local.length - maxLocal}` : "";
-      parts.push(`local: ${local.slice(0, maxLocal).join(", ")}${extra}`);
-    }
-  }
-  return parts;
+  for (const [network, teams] of local) out.push(networkLabel(network, teams));
+  return out;
+}
+
+function teamFor(game: Game, b: Broadcast): string {
+  return b.market === "H" ? game.home : game.away;
 }
 
 function unique(values: string[]): string[] {
   return [...new Set(values)];
-}
-
-function rank(order: readonly string[], value: string): number {
-  const i = order.indexOf(value);
-  return i === -1 ? order.length : i;
 }

@@ -78,6 +78,15 @@ export const COMMANDS = [
     options: [
       { type: OptionType.STRING, name: "day", description: "Today (default), tomorrow or a date", autocomplete: true },
       { type: OptionType.STRING, name: "team", description: "Only this team's game", autocomplete: true },
+      {
+        type: OptionType.STRING,
+        name: "country",
+        description: "Only show TV channels in this country (default: both)",
+        choices: [
+          { name: "🇺🇸 United States", value: "US" },
+          { name: "🇨🇦 Canada", value: "CA" },
+        ],
+      },
     ],
   },
 ] as const;
@@ -240,6 +249,9 @@ function games(ctx: ExecutionContext, interaction: Interaction): InteractionResp
   const team = teamInput ? resolveTeam(teamInput)?.code : undefined;
   if (teamInput && !team) return reply(`❌ I couldn't find a team called "${teamInput}". Pick one from the list.`);
 
+  const countryInput = stringOption(interaction, "country").toUpperCase();
+  const country = countryInput === "US" || countryInput === "CA" ? countryInput : undefined;
+
   ctx.waitUntil(
     (async () => {
       let body: MessageBody;
@@ -248,7 +260,7 @@ function games(ctx: ExecutionContext, interaction: Interaction): InteractionResp
         const mine = team ? day.games.filter((g) => g.away === team || g.home === team) : day.games;
         // "Next games" only makes sense league-wide; a team filter would need more lookups.
         const next = mine.length === 0 && !team ? { nextDay: day.nextDay, nextWeek: day.nextWeek } : {};
-        body = buildScheduleMessage({ date, games: mine, team, ...next });
+        body = buildScheduleMessage({ date, games: mine, team, country, ...next });
       } catch (err) {
         console.error("games failed", err);
         body = {
