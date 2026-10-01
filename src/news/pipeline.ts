@@ -17,6 +17,7 @@ import {
 import { findChannelsFor } from "../db/subscriptions";
 import { RedditError, fetchNewPosts, type SourceItem } from "../sources/reddit";
 import type { Env } from "../env";
+import type { TransactionType } from "../types";
 
 /** Older posts are skipped rather than posted late (e.g. after Reddit was unreachable for a while). */
 export const MAX_AGE_MS = 6 * 60 * 60 * 1000;
@@ -55,10 +56,10 @@ export async function runScan(env: Env, now: number): Promise<void> {
   for (const item of items) {
     if (!unseen.has(item.id)) continue;
     if (now - item.publishedAt > MAX_AGE_MS) {
-      console.log(JSON.stringify({ item: item.id, title: item.title, outcome: "too old" }));
+      log({ item: item.id, title: item.title, outcome: "too old" });
     } else {
       const outcome = await processItem(env, item, { now });
-      console.log(JSON.stringify({ item: item.id, title: item.title, ...describe(outcome) }));
+      log({ item: item.id, title: item.title, ...describe(outcome) });
     }
     // Marked only after processing: if this run dies mid-post, the next run
     // picks the item up again and processItem finishes the remaining channels.
@@ -157,7 +158,21 @@ function pickLink(links: readonly string[]): string | null {
   );
 }
 
-function describe(outcome: Outcome): Record<string, unknown> {
+/** What happened to one item, as logged. */
+type OutcomeLog =
+  | { outcome: "too old" }
+  | { outcome: "rejected"; reason: string }
+  | { outcome: "duplicate"; event: number }
+  | { outcome: "posted"; event: number; type: TransactionType; teams: string[]; channels: number; failed: number };
+
+/** One JSON line per new item, readable in Workers Logs and `wrangler tail`. */
+type ScanLogLine = { item: string; title: string } & OutcomeLog;
+
+function log(line: ScanLogLine): void {
+  console.log(JSON.stringify(line));
+}
+
+function describe(outcome: Outcome): OutcomeLog {
   switch (outcome.kind) {
     case "rejected":
       return { outcome: "rejected", reason: outcome.reason };

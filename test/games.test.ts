@@ -4,7 +4,8 @@ import { DAILY_CRON, inDailyWindow, runDailyGames } from "../src/games/daily";
 import { ALL_TEAMS, upsertSubscription } from "../src/db/subscriptions";
 import type { PostType } from "../src/types";
 import { createTestD1 } from "./helpers/d1";
-import { createTestBot, type TestBot } from "./helpers/discord";
+import { createTestBot, requestJson, type TestBot } from "./helpers/discord";
+import type { MessageBody } from "../src/discord/api";
 import { scheduleResponse } from "./helpers/nhl";
 
 const SATURDAY_MORNING = Date.parse("2026-10-10T15:00:00Z"); // 11 am EDT
@@ -13,8 +14,8 @@ let db: D1Database;
 let bot: TestBot;
 let nhlStatus: number;
 let nhlCalls: number;
-let sent: { channelId: string; body: { embeds?: { title?: string; description?: string }[] } }[];
-let edits: { content?: string; embeds?: { title?: string; description?: string }[] }[];
+let sent: { channelId: string; body: MessageBody }[];
+let edits: MessageBody[];
 
 beforeEach(async () => {
   db = createTestD1();
@@ -36,11 +37,11 @@ beforeEach(async () => {
     const channel = url.match(/discord\.com\/api\/v10\/channels\/([^/]+)\/messages/);
     if (channel) {
       if (channel[1] === "no-access") return new Response('{"message":"Missing Access"}', { status: 403 });
-      sent.push({ channelId: channel[1]!, body: JSON.parse(String(init?.body)) });
+      sent.push({ channelId: channel[1]!, body: requestJson<MessageBody>(init) });
       return Response.json({ id: `msg-${sent.length}` });
     }
     if (url.includes("/webhooks/") && init?.method === "PATCH") {
-      edits.push(JSON.parse(String(init.body)));
+      edits.push(requestJson<MessageBody>(init));
       return Response.json({});
     }
     throw new Error(`unexpected fetch ${url}`);

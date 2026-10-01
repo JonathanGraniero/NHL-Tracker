@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { buildScheduleMessage, gameLine } from "../src/games/format";
-import { easternDate, formatDay, parseWeek, type Game } from "../src/sources/nhl";
+import { easternDate, formatDay, parseWeek, type Broadcast, type Game } from "../src/sources/nhl";
 import { WEEK } from "./helpers/nhl";
 
 const week = parseWeek(WEEK);
@@ -87,7 +87,7 @@ describe("buildScheduleMessage", () => {
   it("drops local networks rather than overflowing", () => {
     const busy: Game[] = Array.from({ length: 16 }, () => ({
       ...game("2026-10-10", "CBJ", "STL"),
-      broadcasts: Array.from({ length: 30 }, (_, i) => ({ country: "US", market: "N" as const, network: `NETWORK-${i}` })),
+      broadcasts: [...Array(30).keys()].map((i): Broadcast => ({ country: "US", market: "N", network: `NETWORK-${i}` })),
     }));
     expect(buildScheduleMessage({ date: "2026-10-10", games: busy }).embeds![0]!.description!.length).toBeLessThanOrEqual(4000);
   });

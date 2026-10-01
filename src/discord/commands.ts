@@ -16,7 +16,7 @@ import {
   upsertSubscription,
 } from "../db/subscriptions";
 import { ALL_TYPES, describeTypes, type PostType, type TransactionType } from "../types";
-import { editOriginalResponse } from "./api";
+import { editOriginalResponse, type MessageBody } from "./api";
 import { buildScheduleMessage } from "../games/format";
 import { NhlError, easternDate, fetchDay, formatDay } from "../sources/nhl";
 import { processItem, type Outcome } from "../news/pipeline";
@@ -242,7 +242,7 @@ function games(ctx: ExecutionContext, interaction: Interaction): InteractionResp
 
   ctx.waitUntil(
     (async () => {
-      let body;
+      let body: MessageBody;
       try {
         const day = await fetchDay(date);
         const mine = team ? day.games.filter((g) => g.away === team || g.home === team) : day.games;
@@ -277,7 +277,7 @@ export function parseDay(input: string, now: number): string | undefined {
 /** Today, tomorrow and the rest of the week, labelled ("Today · Saturday, Oct 10"). */
 function dayChoices(query: string, now: number): Choice[] {
   const q = query.trim().toLowerCase();
-  const choices = Array.from({ length: 8 }, (_, i) => {
+  const choices = [...Array(8).keys()].map((i): Choice => {
     const date = easternDate(now, i);
     const label = i === 0 ? `Today · ${formatDay(date)}` : i === 1 ? `Tomorrow · ${formatDay(date)}` : formatDay(date);
     return { name: label, value: date };
