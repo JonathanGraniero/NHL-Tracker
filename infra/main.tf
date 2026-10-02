@@ -52,10 +52,22 @@ resource "cloudflare_workers_script" "bot" {
   }
 }
 
+# Cloudflare resets created_on on every schedule each time the list is written,
+# but the provider plans the old value for schedules that already exist, so any
+# in-place edit fails with "Provider produced inconsistent result after apply".
+# Replacing the trigger instead makes every computed field unknown at plan time.
+resource "terraform_data" "cron_schedules" {
+  input = var.cron_schedules
+}
+
 resource "cloudflare_workers_cron_trigger" "poll" {
   account_id  = var.account_id
   script_name = cloudflare_workers_script.bot.script_name
   schedules   = [for cron in var.cron_schedules : { cron = cron }]
+
+  lifecycle {
+    replace_triggered_by = [terraform_data.cron_schedules]
+  }
 }
 
 resource "cloudflare_workers_script_subdomain" "bot" {
