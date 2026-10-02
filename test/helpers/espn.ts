@@ -10,7 +10,16 @@ export const ESPN_FIXTURE = JSON.parse(
 
 /** An ESPN entry with sensible defaults, for building scenarios. */
 export function espnEntry(
-  over: { player: string; team: string; status?: "DD" | "O" | "IR" | "SUSP"; body?: string; returnDate?: string; note?: string; date?: string },
+  over: {
+    player: string;
+    team: string;
+    status?: "DD" | "O" | "IR" | "SUSP";
+    body?: string;
+    returnDate?: string;
+    note?: string;
+    date?: string;
+    position?: string;
+  },
 ): EspnInjury {
   const status = over.status ?? "IR";
   return {
@@ -21,7 +30,7 @@ export function espnEntry(
     details: { type: over.body ?? (status === "SUSP" ? "Suspension" : "Lower Body"), returnDate: over.returnDate ?? "2026-10-20" },
     athlete: {
       displayName: over.player,
-      position: { abbreviation: "C" },
+      position: { abbreviation: over.position ?? "C" },
       team: { abbreviation: over.team },
       links: [{ href: `https://www.espn.com/nhl/player/_/id/${over.player.length}` }],
     },

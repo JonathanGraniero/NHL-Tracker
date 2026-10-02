@@ -16,6 +16,9 @@ import {
 } from "../db/events";
 import { findChannelsFor } from "../db/subscriptions";
 import { RedditError, fetchNewPosts, type SourceItem } from "../sources/reddit";
+import { Budget } from "../injuries/deliver";
+import { processInjuryItem, type InjuryOutcome } from "../injuries/breaking";
+import type { InjuryStatus } from "../sources/espn-injuries";
 import type { Env } from "../env";
 import type { TransactionType } from "../types";
 
@@ -23,6 +26,11 @@ import type { TransactionType } from "../types";
 export const MAX_AGE_MS = 6 * 60 * 60 * 1000;
 /** Reports of the same move this far apart are treated as one event. */
 const DEDUPE_WINDOW_MS = 48 * 60 * 60 * 1000;
+/**
+ * Discord calls for injury posts per scan. Workers Free allows 50 outside
+ * requests per run, shared with Reddit, roster lookups and trade posts.
+ */
+const INJURY_BUDGET = 20;
 /** Set once the first scan has marked the existing feed as seen, so the bot doesn't post a backlog. */
 const READY_KEY = "reddit_ready";
 
@@ -53,13 +61,16 @@ export async function runScan(env: Env, now: number): Promise<void> {
     return;
   }
 
+  const injuryBudget = new Budget(INJURY_BUDGET);
   for (const item of items) {
     if (!unseen.has(item.id)) continue;
     if (now - item.publishedAt > MAX_AGE_MS) {
       log({ item: item.id, title: item.title, outcome: "too old" });
     } else {
       const outcome = await processItem(env, item, { now });
-      log({ item: item.id, title: item.title, ...describe(outcome) });
+      // Not a confirmed move: maybe breaking injury news.
+      const injury = outcome.kind === "rejected" ? await processInjuryItem(env, item, now, injuryBudget) : undefined;
+      log({ item: item.id, title: item.title, ...(injury && injury.kind !== "not-injury" ? describeInjury(injury) : describe(outcome)) });
     }
     // Marked only after processing: if this run dies mid-post, the next run
     // picks the item up again and processItem finishes the remaining channels.
@@ -163,13 +174,21 @@ type OutcomeLog =
   | { outcome: "too old" }
   | { outcome: "rejected"; reason: string }
   | { outcome: "duplicate"; event: number }
-  | { outcome: "posted"; event: number; type: TransactionType; teams: string[]; channels: number; failed: number };
+  | { outcome: "posted"; event: number; type: TransactionType; teams: string[]; channels: number; failed: number }
+  | { outcome: "injury rejected"; reason: string }
+  | { outcome: "injury"; team: string; player: string; status: InjuryStatus; reporter: string; posted: number; edited: number };
 
 /** One JSON line per new item, readable in Workers Logs and `wrangler tail`. */
 type ScanLogLine = { item: string; title: string } & OutcomeLog;
 
 function log(line: ScanLogLine): void {
   console.log(JSON.stringify(line));
+}
+
+function describeInjury(outcome: Exclude<InjuryOutcome, { kind: "not-injury" }>): OutcomeLog {
+  if (outcome.kind === "rejected") return { outcome: "injury rejected", reason: outcome.reason };
+  const { team, player, status, reporter, posted, edited } = outcome;
+  return { outcome: "injury", team, player, status, reporter, posted, edited };
 }
 
 function describe(outcome: Outcome): OutcomeLog {

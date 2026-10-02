@@ -118,7 +118,7 @@ export function classify(input: ClassifyInput): Verdict {
 }
 
 /** Team news on nhl.com lives under nhl.com/<team>/, e.g. nhl.com/sabres/news/…. */
-function teamsFromOfficialLinks(links: readonly string[]): Team[] {
+export function teamsFromOfficialLinks(links: readonly string[]): Team[] {
   for (const link of links) {
     const m = link.match(/^https?:\/\/(?:www\.)?nhl\.com\/([a-z]+)\//i);
     const slug = m?.[1]?.toLowerCase();
@@ -129,12 +129,12 @@ function teamsFromOfficialLinks(links: readonly string[]): Team[] {
 }
 
 /** "[Friedman] Columbus: …" → { tag: "Friedman", rest: "Columbus: …" } */
-function splitTag(title: string): { tag?: string; rest: string } {
+export function splitTag(title: string): { tag?: string; rest: string } {
   const m = title.match(/^\[([^\]]+)\]\s*:?\s*/);
   return m ? { tag: m[1]?.trim(), rest: title.slice(m[0].length) } : { rest: title };
 }
 
-function trustedSource(tag: string | undefined, links: readonly string[]): string | undefined {
+export function trustedSource(tag: string | undefined, links: readonly string[]): string | undefined {
   if (tag) {
     const key = normalize(tag);
     const insider = INSIDERS[key];
@@ -210,7 +210,7 @@ export function findTeams(text: string): Team[] {
 }
 
 /** Best-effort player names: capitalised words that aren't teams, sources or filler. */
-function findPlayers(text: string): string[] {
+export function findPlayers(text: string): string[] {
   const teamWords = new Set(
     TEAMS.flatMap((t) => [t.code, t.name, ...t.aliases, ...t.name.split(" ")]).map((w) => normalize(w)),
   );

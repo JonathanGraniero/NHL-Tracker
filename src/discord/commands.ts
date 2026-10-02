@@ -22,7 +22,8 @@ import { buildScheduleMessage } from "../games/format";
 import { NhlError, easternDate, fetchDay, formatDay } from "../sources/nhl";
 import { processItem, type Outcome } from "../news/pipeline";
 import { RedditError, fetchPost, postIdFromInput } from "../sources/reddit";
-import { injuryListMessage } from "../injuries/format";
+import { STATUS_LABELS, injuryListMessage } from "../injuries/format";
+import { previewInjury, type InjuryOutcome } from "../injuries/breaking";
 import { openEpisodes } from "../db/injuries";
 import type { Env } from "../env";
 
@@ -249,9 +250,15 @@ function replay(env: Env, ctx: ExecutionContext, guildId: string, interaction: I
       let content: string;
       try {
         const item = await fetchPost(postId);
-        content = item
-          ? describeReplay(await processItem(env, item, { now: Date.now(), guildId }), item.title)
-          : "❌ Reddit doesn't have a post with that link.";
+        if (!item) {
+          content = "❌ Reddit doesn't have a post with that link.";
+        } else {
+          const outcome = await processItem(env, item, { now: Date.now(), guildId });
+          // Not a move: maybe an injury. Injuries are only previewed; posting them belongs to the live feed.
+          const injury = outcome.kind === "rejected" ? await previewInjury(env.DB, item, Date.now()) : undefined;
+          content =
+            injury && injury.kind !== "not-injury" ? describeInjuryReplay(injury, item.title) : describeReplay(outcome, item.title);
+        }
       } catch (err) {
         console.error("replay failed", err);
         content =
@@ -284,6 +291,15 @@ function describeReplay(outcome: Outcome, title: string): string {
     lines.push(`Nothing new to post: no channel in this server follows these teams for ${event.type}s, or they already have it.`);
   }
   return `${lines.join("\n")}\n${quoted}`;
+}
+
+function describeInjuryReplay(outcome: Exclude<InjuryOutcome, { kind: "not-injury" }>, title: string): string {
+  const quoted = `> ${title}`;
+  if (outcome.kind === "rejected") return `⏭️ **Wouldn't record this injury:** ${outcome.reason}.\n${quoted}`;
+  return (
+    `🩹 **Would record an injury:** ${outcome.player} (${teamLabel(outcome.team)}) · ${STATUS_LABELS[outcome.status]}, first reported by **${outcome.reporter}**.\n` +
+    `Injury posts come from the live feed, so /replay doesn't post them.\n${quoted}`
+  );
 }
 
 /** Answers straight away (publicly: everyone wants to know what's on), then fills in the schedule. */
