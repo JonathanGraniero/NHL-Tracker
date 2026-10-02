@@ -20,6 +20,8 @@ import { ALL_TYPES, describeTypes, isCountry, type Country, type PostType, type 
 import { editOriginalResponse, type MessageBody } from "./api";
 import { buildScheduleMessage } from "../games/format";
 import { NhlError, easternDate, fetchDay, formatDay } from "../sources/nhl";
+import { divisionsOf, fetchStandings, isConference, isDivision, type Conference } from "../sources/nhl-standings";
+import { standingsMessage, type StandingsView } from "../standings/format";
 import { processItem, type Outcome } from "../news/pipeline";
 import { RedditError, fetchPost, postIdFromInput } from "../sources/reddit";
 import { injuryListMessage } from "../injuries/format";
@@ -104,6 +106,33 @@ export const COMMANDS = [
     options: [{ type: OptionType.STRING, name: "team", description: "Only this team (default: every team)", autocomplete: true }],
   },
   {
+    name: "standings",
+    description: "NHL standings: league, conference, division, or the playoff picture if the season ended today.",
+    options: [
+      {
+        type: OptionType.STRING,
+        name: "conference",
+        description: "Only this conference",
+        choices: [
+          { name: "Eastern", value: "Eastern" },
+          { name: "Western", value: "Western" },
+        ],
+      },
+      {
+        type: OptionType.STRING,
+        name: "division",
+        description: "Only this division",
+        choices: [
+          { name: "Atlantic", value: "Atlantic" },
+          { name: "Metropolitan", value: "Metropolitan" },
+          { name: "Central", value: "Central" },
+          { name: "Pacific", value: "Pacific" },
+        ],
+      },
+      { type: OptionType.BOOLEAN, name: "playoffs", description: "Show who's in if the season ended today, with first-round matchups" },
+    ],
+  },
+  {
     name: "tv",
     description: "Choose which country's TV channels game posts in this channel show.",
     default_member_permissions: MANAGE_GUILD,
@@ -123,6 +152,7 @@ export async function handleCommand(
   if (name === "ping") return reply("🏒 Pong! NHL Tracker is online.");
   if (name === "games") return games(env.DB, ctx, interaction);
   if (name === "injuries") return injuries(env.DB, interaction);
+  if (name === "standings") return standings(ctx, interaction);
 
   const { guild_id: guildId, channel_id: channelId } = interaction;
   if (!guildId || !channelId) return reply("This command only works in a server channel.");
@@ -339,6 +369,64 @@ async function injuries(db: D1Database, interaction: Interaction): Promise<Inter
     type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
     data: injuryListMessage(list, { team }),
   };
+}
+
+/**
+ * Which standings to show. playoffs:True shows the playoff picture for both
+ * conferences, or the one picked (a division picks its conference).
+ */
+export function standingsView(options: {
+  conference?: string;
+  division?: string;
+  playoffs?: boolean;
+}): { view: StandingsView } | { error: string } {
+  const conference = options.conference && isConference(options.conference) ? options.conference : undefined;
+  const division = options.division && isDivision(options.division) ? options.division : undefined;
+  if (options.conference && !conference) return { error: `❌ "${options.conference}" isn't a conference.` };
+  if (options.division && !division) return { error: `❌ "${options.division}" isn't a division.` };
+  const divisionConference: Conference | undefined = division
+    ? (["Eastern", "Western"] as const).find((c) => divisionsOf(c).includes(division))
+    : undefined;
+  if (conference && divisionConference && conference !== divisionConference) {
+    return { error: `❌ The ${division} Division is in the ${divisionConference} Conference, not the ${conference}.` };
+  }
+  if (options.playoffs) {
+    const only = conference ?? divisionConference;
+    return { view: { kind: "playoffs", conferences: only ? [only] : ["Eastern", "Western"] } };
+  }
+  if (division) return { view: { kind: "division", division } };
+  if (conference) return { view: { kind: "conference", conference } };
+  return { view: { kind: "league" } };
+}
+
+/** Answers straight away (publicly), then fills in the standings from NHL.com. */
+function standings(ctx: ExecutionContext, interaction: Interaction): InteractionResponse {
+  const result = standingsView({
+    conference: stringOption(interaction, "conference") || undefined,
+    division: stringOption(interaction, "division") || undefined,
+    playoffs: booleanOption(interaction, "playoffs"),
+  });
+  if ("error" in result) return reply(result.error);
+  const { view } = result;
+
+  ctx.waitUntil(
+    (async () => {
+      let body: MessageBody;
+      try {
+        body = standingsMessage(await fetchStandings(), view);
+      } catch (err) {
+        console.error("standings failed", err);
+        body = {
+          content:
+            err instanceof NhlError
+              ? "⏳ I couldn't reach NHL.com just now. Try again in a minute."
+              : "❌ Something went wrong getting the standings.",
+        };
+      }
+      await editOriginalResponse(interaction.application_id, interaction.token, body);
+    })(),
+  );
+  return { type: InteractionResponseType.DEFERRED_CHANNEL_MESSAGE_WITH_SOURCE };
 }
 
 /** "today", "tomorrow", "yesterday" or YYYY-MM-DD → an Eastern date. */
