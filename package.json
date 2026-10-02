@@ -1,5 +1,5 @@
 {
-  "name": "nhl-trade-tracker",
+  "name": "nhl-tracker",
   "version": "0.1.0",
   "private": true,
   "description": "Discord bot on Cloudflare Workers that posts confirmed NHL trades, waivers and signings.",

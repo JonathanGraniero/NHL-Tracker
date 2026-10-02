@@ -11,7 +11,7 @@ export default {
     const url = new URL(request.url);
 
     if (request.method === "GET" && url.pathname === "/") {
-      return new Response("NHL Trade Tracker is running.");
+      return new Response("NHL Tracker is running.");
     }
     if (request.method !== "POST" || url.pathname !== "/interactions") {
       return new Response("Not found", { status: 404 });

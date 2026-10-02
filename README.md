@@ -1,4 +1,4 @@
-# NHL Trade Tracker
+# NHL Tracker
 
 A Discord bot that posts **confirmed** NHL trades, waiver moves and signings to the channels that subscribe to each team. It runs on **Cloudflare Workers** with a **D1** database, so it costs nothing on the free tier and needs no server.
 

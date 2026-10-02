@@ -2,6 +2,8 @@
 # Production (Worker, cron, bindings, secrets) is managed by Terraform in infra/
 # and deployed by .github/workflows/deploy.yml. Don't run `wrangler deploy`:
 # the next Terraform apply would overwrite it.
+# Cloudflare resources keep their original "nhl-trade-tracker" names (the repo is now NHL-Tracker):
+# renaming the Worker changes its URL (Discord's Interactions Endpoint) and renaming D1 replaces the database.
 name = "nhl-trade-tracker"
 main = "src/index.ts"
 compatibility_date = "2025-09-01" # keep in sync with infra/variables.tf

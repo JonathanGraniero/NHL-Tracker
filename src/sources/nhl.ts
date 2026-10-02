@@ -57,7 +57,7 @@ const API = "https://api-web.nhle.com/v1";
 /** The week of games starting on `date` (YYYY-MM-DD, Eastern). */
 export async function fetchWeek(date: string): Promise<ScheduleWeek> {
   const res = await fetch(`${API}/schedule/${date}`, {
-    headers: { "User-Agent": "nhl-trade-tracker (+https://github.com/JonathanGraniero/NHL-Trade-Tracker)" },
+    headers: { "User-Agent": "nhl-tracker (+https://github.com/JonathanGraniero/NHL-Tracker)" },
   });
   if (!res.ok) throw new NhlError(res.status);
   return parseWeek(await res.json<NhlScheduleResponse>());
