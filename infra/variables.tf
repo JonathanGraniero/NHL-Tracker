@@ -30,9 +30,10 @@ variable "compatibility_date" {
 variable "cron_schedules" {
   description = "Cron expressions that trigger scheduled()."
   type        = list(string)
-  # Every 2 minutes: poll for news. Daily at 15:00 UTC (11 am EDT / 10 am EST): post the day's games.
-  # The daily entry must match DAILY_CRON in src/games/daily.ts.
-  default = ["*/2 * * * *", "0 15 * * *"]
+  # Every 2 minutes: poll for news. Every 10 minutes: check ESPN's injury list.
+  # Daily at 15:00 UTC (11 am EDT / 10 am EST): post the day's games.
+  # The entries must match DAILY_CRON (src/games/daily.ts) and INJURY_CRON (src/injuries/tracker.ts).
+  default = ["*/2 * * * *", "*/10 * * * *", "0 15 * * *"]
 }
 
 variable "worker_bundle" {

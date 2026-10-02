@@ -1,3 +1,4 @@
+import type { Embed } from "./api";
 // The subset of the Discord interactions API this bot uses.
 // https://discord.com/developers/docs/interactions/receiving-and-responding
 
@@ -56,6 +57,7 @@ export interface InteractionResponse {
   type: number;
   data?: {
     content?: string;
+    embeds?: Embed[];
     flags?: number;
     choices?: Choice[];
   };

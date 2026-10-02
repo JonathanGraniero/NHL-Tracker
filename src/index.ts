@@ -2,6 +2,7 @@ import { handleAutocomplete, handleCommand } from "./discord/commands";
 import { InteractionResponseType, InteractionType, type Interaction } from "./discord/types";
 import { verifyDiscordRequest } from "./discord/verify";
 import { DAILY_CRON, inDailyWindow, runDailyGames } from "./games/daily";
+import { INJURY_CRON, runInjuryCheck } from "./injuries/tracker";
 import { runScan } from "./news/pipeline";
 import type { Env } from "./env";
 
@@ -43,13 +44,18 @@ export default {
 
   /**
    * Runs on the crons in infra/variables.tf: every 2 minutes, poll r/hockey
-   * and post confirmed moves; once a day, post the day's games. The 2-minute
-   * run also retries the daily post during the morning if it failed.
+   * and post confirmed moves; every 10 minutes, check ESPN's injury list;
+   * once a day, post the day's games. The 2-minute run also retries the
+   * daily post during the morning if it failed.
    */
   async scheduled(controller: ScheduledController, env: Env, _ctx: ExecutionContext): Promise<void> {
     const now = controller.scheduledTime;
     if (controller.cron === DAILY_CRON) {
       await runDailyGames(env, now);
+      return;
+    }
+    if (controller.cron === INJURY_CRON) {
+      await runInjuryCheck(env, now);
       return;
     }
     await runScan(env, now);

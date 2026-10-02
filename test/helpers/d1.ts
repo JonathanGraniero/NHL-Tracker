@@ -42,5 +42,18 @@ export function createTestD1(): D1Database {
   }
   return {
     prepare: (sql: string) => new Statement(db, sql),
+    // Like D1: every statement in one transaction, all or nothing.
+    async batch(statements: Statement[]) {
+      db.exec("BEGIN");
+      try {
+        const results = [];
+        for (const s of statements) results.push(await s.run());
+        db.exec("COMMIT");
+        return results;
+      } catch (err) {
+        db.exec("ROLLBACK");
+        throw err;
+      }
+    },
   } as unknown as D1Database;
 }
