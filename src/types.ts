@@ -2,16 +2,17 @@ export type TransactionType = "trade" | "waiver" | "signing";
 
 export const ALL_TYPES: readonly TransactionType[] = ["trade", "waiver", "signing"];
 
-/** What a channel can subscribe to: news about moves, plus the daily game schedule. */
-export type PostType = TransactionType | "games";
+/** What a channel can subscribe to: news about moves, the daily game schedule, and injuries. */
+export type PostType = TransactionType | "games" | "injuries";
 
-export const ALL_POST_TYPES: readonly PostType[] = [...ALL_TYPES, "games"];
+export const ALL_POST_TYPES: readonly PostType[] = [...ALL_TYPES, "injuries", "games"];
 
 const PLURAL: Record<PostType, string> = {
   trade: "trades",
   waiver: "waivers",
   signing: "signings",
   games: "the daily schedule",
+  injuries: "injuries",
 };
 
 /** ["trade", "waiver"] → "trades and waivers" */

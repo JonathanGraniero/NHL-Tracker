@@ -18,6 +18,8 @@ export interface MessageBody {
   embeds?: Embed[];
   flags?: number;
   allowed_mentions?: { parse: string[] };
+  /** Makes the message a reply. fail_if_not_exists: false still sends it if the original was deleted. */
+  message_reference?: { message_id: string; fail_if_not_exists?: boolean };
 }
 
 export type SendResult = { ok: true; id: string } | { ok: false; status: number; error: string };
@@ -43,6 +45,22 @@ export async function createMessage(botToken: string, channelId: string, body: M
   });
   if (!res.ok) return { ok: false, status: res.status, error: await res.text() };
   return { ok: true, id: (await res.json<DiscordMessage>()).id };
+}
+
+/** Rewrites one of the bot's own messages in place (no new notification). */
+export async function editMessage(
+  botToken: string,
+  channelId: string,
+  messageId: string,
+  body: MessageBody,
+): Promise<SendResult> {
+  const res = await discordFetch(`${API}/channels/${channelId}/messages/${messageId}`, {
+    method: "PATCH",
+    headers: { Authorization: `Bot ${botToken}` },
+    body,
+  });
+  if (!res.ok) return { ok: false, status: res.status, error: await res.text() };
+  return { ok: true, id: messageId };
 }
 
 /** Replaces the "thinking…" placeholder of a deferred interaction reply. */

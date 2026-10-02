@@ -17,17 +17,20 @@ A Discord bot that posts **confirmed** NHL trades, waiver moves and signings to 
 | 5. Dedupe + posting embeds, `/replay` | ✅ Done |
 | 6. Hardening (first-run backfill ✅, Reddit rate limits ✅, more sources) | ⏳ Next |
 | 7. Daily games and broadcasts: `/games`, morning post | ✅ Done |
+| 8. Injuries from ESPN: episodes, `/injuries`, posts, replies and edits | ✅ Done |
+| 9. Injuries from r/hockey (breaking news, attaches to the same episodes) | ⏳ Next |
 
 ## Commands
 
 | Command | Who can use it | What it does |
 |---|---|---|
-| `/subscribe team:<team> [trades] [waivers] [signings] [games]` | Manage Server | Follow a team in this channel. Pick **⭐ All teams** to follow the whole league. Set a type to `False` to skip it; for example, `/subscribe team:Leafs waivers:False` posts only trades and signings. `games:True` adds a morning post of the day's games and where they're on TV (off by default). Running it again for the same team updates its types. |
+| `/subscribe team:<team> [trades] [waivers] [signings] [injuries] [games]` | Manage Server | Follow a team in this channel. Pick **⭐ All teams** to follow the whole league. Set a type to `False` to skip it; for example, `/subscribe team:Leafs waivers:False` posts only trades and signings. `injuries:True` adds injury posts (off by default, see below). `games:True` adds a morning post of the day's games and where they're on TV (off by default). Running it again for the same team updates its types. |
 | `/unsubscribe team:<team>` | Manage Server | Stop following a team. Autocomplete lists only this channel's teams, plus **Remove all**. |
 | `/subscriptions` | Everyone | List what this channel follows. |
 | `/replay post:<link>` | Manage Server | Run an r/hockey post through the filter. If it's a confirmed move, post it to this server's subscribed channels (even if it's old), otherwise say why not. Handy for testing a new channel. |
 | `/games [day] [team] [country]` | Everyone | A day's games (today by default) with start times in your time zone and where they're on TV, grouped under 🇺🇸 and 🇨🇦. `country:` shows only US or only Canadian channels for this one call; without it, the channel's `/tv` setting applies. Visible to the whole channel. Also works in DMs. |
 | `/tv country:<United States \| Canada \| Both>` | Manage Server | Choose which country's TV channels this channel's game posts show (the morning post and `/games`). Saved per channel; `/subscriptions` shows it. |
+| `/injuries [team]` | Everyone | Who's on the injury list: status, injury and estimated return. Every team by default. Visible to the whole channel. |
 | `/ping` | Everyone | Check the bot is online. |
 
 Subscriptions belong to a **channel**, so one server can have `#leafs-news` following Toronto and `#league-wide` following all teams. Replies are visible only to the person who ran the command. Server admins can change who is allowed to use each command in **Server Settings → Integrations**.
@@ -36,6 +39,7 @@ Subscriptions belong to a **channel**, so one server can have `#leafs-news` foll
 
 ```
 Cron (every 2 min) ──► scheduled()  → fetch r/hockey → filter → dedupe → post
+Cron (every 10 min) ──► scheduled()  → ESPN injury list → diff → episodes → post / reply / edit
 Cron (daily 15:00Z) ──► scheduled()  → NHL schedule → post today's games to subscribed channels
 Discord command    ──► fetch() /interactions → verify signature → handle
 ```
@@ -86,6 +90,20 @@ National channels come first. A team in brackets marks that team's local channel
 The bot can't know where a viewer is, so it names the blacked-out areas rather than saying whether a game is blacked out for you. Finished games get no note.
 
 The start time is a Discord timestamp, so everyone sees it in their own time zone, and the matchup links to NHL.com's Game Center. A `daily_posts` row per day and channel means a rerun never posts twice, and if NHL.com is down at 15:00 the 2-minute cron retries until 18:00 UTC.
+
+### Injuries
+
+NHL.com has no injury data, so the backbone is ESPN's league-wide injury list (undocumented but public). Every 10 minutes the bot compares it with the previous check. Each injury is an **episode**, from the first report until the player is off the list, and every source attaches to the same episode, so an injury is posted once.
+
+| Change | In Discord |
+|---|---|
+| New injury: out, injured reserve or suspended | A new post |
+| Day-to-day | Nothing (it's in `/injuries`); posted if it becomes out or IR |
+| Gets more serious (out → IR) | A reply to the original post, and the original is edited to the new status |
+| Estimated return or injury changes | The original post is edited quietly |
+| Off the list for two checks in a row | A ✅ reply to the original post, and the episode closes |
+
+The first check records everyone already hurt without posting. A check where ESPN suddenly lists less than half as many injuries is skipped as a glitch. Contract holdouts and other absences ESPN marks as not injuries are ignored. Each run applies at most 30 changes and makes at most 40 Discord calls; anything left over (still a difference from the snapshot, or an update marked unsent) is picked up by the next run, and `injury_posts` keeps every update to one message per channel.
 
 ## Setup
 
@@ -164,6 +182,13 @@ src/games/espn.ts        Whether a game is on ESPN+ out-of-market, and where it'
 src/db/settings.ts       Per-channel settings (TV country)
 src/games/daily.ts       The daily schedule post (once per day and channel, retried if NHL.com is down)
 src/db/daily.ts          Which channels already got each day's schedule
+src/sources/espn-injuries.ts  ESPN's injury list: fetch, parse, team codes, player keys
+src/injuries/diff.ts     ESPN list vs last snapshot: added, changed, missing
+src/injuries/episodes.ts One episode per injury: what's a post, a reply or an edit
+src/injuries/deliver.ts  Sends updates within the per-run budget; edits originals; resumes unsent ones
+src/injuries/tracker.ts  The 10-minute check
+src/injuries/format.ts   Injury posts, replies and the /injuries list
+src/db/injuries.ts       Snapshot, episodes, updates and posts
 migrations/              D1 schema
 scripts/                 One-off tools (command registration)
 infra/                   Terraform: D1, Worker, cron, workers.dev route

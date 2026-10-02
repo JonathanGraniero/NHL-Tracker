@@ -22,6 +22,8 @@ import { buildScheduleMessage } from "../games/format";
 import { NhlError, easternDate, fetchDay, formatDay } from "../sources/nhl";
 import { processItem, type Outcome } from "../news/pipeline";
 import { RedditError, fetchPost, postIdFromInput } from "../sources/reddit";
+import { injuryListMessage } from "../injuries/format";
+import { openEpisodes } from "../db/injuries";
 import type { Env } from "../env";
 
 /** Permission bit for "Manage Server". Admins can change who may use a command in Server Settings → Integrations. */
@@ -47,7 +49,7 @@ export const COMMANDS = [
   },
   {
     name: "subscribe",
-    description: "Post a team's confirmed trades, waivers and signings, and optionally its daily games, here.",
+    description: "Post a team's confirmed trades, waivers and signings, and optionally injuries and daily games.",
     default_member_permissions: MANAGE_GUILD,
     contexts: GUILD_ONLY,
     options: [
@@ -56,6 +58,7 @@ export const COMMANDS = [
       { type: OptionType.BOOLEAN, name: "waivers", description: "Post waiver moves (default: yes)" },
       { type: OptionType.BOOLEAN, name: "signings", description: "Post signings and extensions (default: yes)" },
       { type: OptionType.BOOLEAN, name: "games", description: "Post the day's games and where to watch them each morning (default: no)" },
+      { type: OptionType.BOOLEAN, name: "injuries", description: "Post injuries: IR, out and suspensions, and returns (default: no)" },
     ],
   },
   {
@@ -96,6 +99,11 @@ export const COMMANDS = [
     ],
   },
   {
+    name: "injuries",
+    description: "Show who's on the injury list.",
+    options: [{ type: OptionType.STRING, name: "team", description: "Only this team (default: every team)", autocomplete: true }],
+  },
+  {
     name: "tv",
     description: "Choose which country's TV channels game posts in this channel show.",
     default_member_permissions: MANAGE_GUILD,
@@ -114,6 +122,7 @@ export async function handleCommand(
   const name = interaction.data?.name;
   if (name === "ping") return reply("🏒 Pong! NHL Tracker is online.");
   if (name === "games") return games(env.DB, ctx, interaction);
+  if (name === "injuries") return injuries(env.DB, interaction);
 
   const { guild_id: guildId, channel_id: channelId } = interaction;
   if (!guildId || !channelId) return reply("This command only works in a server channel.");
@@ -146,6 +155,8 @@ export async function handleAutocomplete(interaction: Interaction, env: Env): Pr
       focused?.name === "day"
         ? dayChoices(query, Date.now())
         : searchTeams(query).map((t) => ({ name: t.name, value: t.code }));
+  } else if (interaction.data?.name === "injuries") {
+    choices = searchTeams(query).map((t) => ({ name: t.name, value: t.code }));
   } else if (interaction.data?.name === "unsubscribe" && interaction.channel_id) {
     choices = await subscribedChoices(env.DB, interaction.channel_id, query);
   }
@@ -163,9 +174,10 @@ async function subscribe(db: D1Database, guildId: string, channelId: string, int
 
   const optionFor: Record<TransactionType, string> = { trade: "trades", waiver: "waivers", signing: "signings" };
   const types: PostType[] = ALL_TYPES.filter((t) => booleanOption(interaction, optionFor[t]) ?? true);
-  // The daily schedule is opt-in: a morning post every game day is noisier than news.
+  // The daily schedule and injuries are opt-in: both post far more often than moves.
+  if (booleanOption(interaction, "injuries") === true) types.push("injuries");
   if (booleanOption(interaction, "games") === true) types.push("games");
-  if (types.length === 0) return reply("❌ Pick at least one of trades, waivers, signings or games.");
+  if (types.length === 0) return reply("❌ Pick at least one of trades, waivers, signings, injuries or games.");
 
   const result = await upsertSubscription(db, { guildId, channelId, teamCode, types });
   const verb = result === "created" ? "will now get" : "now gets";
@@ -315,6 +327,18 @@ function games(db: D1Database, ctx: ExecutionContext, interaction: Interaction):
     })(),
   );
   return { type: InteractionResponseType.DEFERRED_CHANNEL_MESSAGE_WITH_SOURCE };
+}
+
+/** Who's hurt, from the injury tracker's records (no outside request, so it answers straight away). Public. */
+async function injuries(db: D1Database, interaction: Interaction): Promise<InteractionResponse> {
+  const teamInput = stringOption(interaction, "team");
+  const team = teamInput ? resolveTeam(teamInput)?.code : undefined;
+  if (teamInput && !team) return reply(`❌ I couldn't find a team called "${teamInput}". Pick one from the list.`);
+  const list = await openEpisodes(db, team ? [team] : undefined);
+  return {
+    type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
+    data: injuryListMessage(list, { team }),
+  };
 }
 
 /** "today", "tomorrow", "yesterday" or YYYY-MM-DD → an Eastern date. */
