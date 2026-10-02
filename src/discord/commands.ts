@@ -43,7 +43,7 @@ const COUNTRY_CHOICES = [
 export const COMMANDS = [
   {
     name: "ping",
-    description: "Check that the NHL Trade Tracker is online.",
+    description: "Check that the NHL Tracker is online.",
   },
   {
     name: "subscribe",
@@ -112,7 +112,7 @@ export async function handleCommand(
   ctx: ExecutionContext,
 ): Promise<InteractionResponse> {
   const name = interaction.data?.name;
-  if (name === "ping") return reply("🏒 Pong! NHL Trade Tracker is online.");
+  if (name === "ping") return reply("🏒 Pong! NHL Tracker is online.");
   if (name === "games") return games(env.DB, ctx, interaction);
 
   const { guild_id: guildId, channel_id: channelId } = interaction;

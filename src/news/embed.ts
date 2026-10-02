@@ -25,7 +25,7 @@ export function buildMessage(event: NewsEvent): MessageBody {
           { name: "Source", value: event.source, inline: true },
           { name: "Discussion", value: `[r/hockey](${event.url})`, inline: true },
         ],
-        footer: { text: "NHL Trade Tracker · confirmed moves only" },
+        footer: { text: "NHL Tracker · confirmed moves only" },
       },
     ],
   };

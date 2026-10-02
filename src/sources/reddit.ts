@@ -23,7 +23,7 @@ export class RedditError extends Error {
 }
 
 const NEW_POSTS_URL = "https://www.reddit.com/r/hockey/new.rss?limit=100";
-const USER_AGENT = "cloudflare-worker:nhl-trade-tracker:0.1 (+https://github.com/JonathanGraniero/NHL-Trade-Tracker)";
+const USER_AGENT = "cloudflare-worker:nhl-tracker:0.1 (+https://github.com/JonathanGraniero/NHL-Tracker)";
 
 /** The newest 100 r/hockey posts, oldest first. */
 export async function fetchNewPosts(): Promise<SourceItem[]> {
