@@ -31,6 +31,7 @@ A Discord bot that posts **confirmed** NHL trades, waiver moves and signings to 
 | `/games [day] [team] [country]` | Everyone | A day's games (today by default) with start times in your time zone and where they're on TV, grouped under 🇺🇸 and 🇨🇦. `country:` shows only US or only Canadian channels for this one call; without it, the channel's `/tv` setting applies. Visible to the whole channel. Also works in DMs. |
 | `/tv country:<United States \| Canada \| Both>` | Manage Server | Choose which country's TV channels this channel's game posts show (the morning post and `/games`). Saved per channel; `/subscriptions` shows it. |
 | `/injuries [team]` | Everyone | Who's on the injury list: status, injury and estimated return. Every team by default. Visible to the whole channel. |
+| `/standings [conference] [division] [playoffs]` | Everyone | Standings from NHL.com: the league, a conference or a division. `playoffs:True` shows the playoff picture if the season ended today (division top three, wild cards, a cut line with points back, and the first-round matchups) for both conferences, or the one picked. Visible to the whole channel. Also works in DMs. |
 | `/ping` | Everyone | Check the bot is online. |
 
 Subscriptions belong to a **channel**, so one server can have `#leafs-news` following Toronto and `#league-wide` following all teams. Replies are visible only to the person who ran the command. Server admins can change who is allowed to use each command in **Server Settings → Integrations**.
@@ -182,6 +183,8 @@ src/games/espn.ts        Whether a game is on ESPN+ out-of-market, and where it'
 src/db/settings.ts       Per-channel settings (TV country)
 src/games/daily.ts       The daily schedule post (once per day and channel, retried if NHL.com is down)
 src/db/daily.ts          Which channels already got each day's schedule
+src/sources/nhl-standings.ts  NHL.com standings: ranks, wild cards, clinch markers
+src/standings/format.ts  /standings tables, playoff picture and first-round matchups
 src/sources/espn-injuries.ts  ESPN's injury list: fetch, parse, team codes, player keys
 src/injuries/diff.ts     ESPN list vs last snapshot: added, changed, missing
 src/injuries/episodes.ts One episode per injury: what's a post, a reply or an edit
