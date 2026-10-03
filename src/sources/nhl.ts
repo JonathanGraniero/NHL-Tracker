@@ -176,3 +176,38 @@ export function formatDay(date: string): string {
     new Date(`${date}T12:00:00Z`),
   );
 }
+
+export interface RosterPlayer {
+  name: string;
+  /** C, L, R, D or G. */
+  position: string;
+}
+
+/** The parts of /v1/roster/{team}/current the bot reads. */
+export interface NhlRosterResponse {
+  forwards?: NhlRosterEntry[];
+  defensemen?: NhlRosterEntry[];
+  goalies?: NhlRosterEntry[];
+}
+
+export interface NhlRosterEntry {
+  firstName: { default: string };
+  lastName: { default: string };
+  positionCode: string;
+}
+
+/** A team's current roster, including players on injured reserve. */
+export async function fetchRoster(team: string): Promise<RosterPlayer[]> {
+  const res = await fetch(`${API}/roster/${team}/current`, {
+    headers: { "User-Agent": "nhl-tracker (+https://github.com/JonathanGraniero/NHL-Tracker)" },
+  });
+  if (!res.ok) throw new NhlError(res.status);
+  return parseRoster(await res.json<NhlRosterResponse>());
+}
+
+export function parseRoster(raw: NhlRosterResponse): RosterPlayer[] {
+  return [...(raw.forwards ?? []), ...(raw.defensemen ?? []), ...(raw.goalies ?? [])].map((p) => ({
+    name: `${p.firstName.default} ${p.lastName.default}`,
+    position: p.positionCode,
+  }));
+}

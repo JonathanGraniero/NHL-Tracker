@@ -18,7 +18,7 @@ A Discord bot that posts **confirmed** NHL trades, waiver moves and signings to 
 | 6. Hardening (first-run backfill ✅, Reddit rate limits ✅, more sources) | ⏳ Next |
 | 7. Daily games and broadcasts: `/games`, morning post | ✅ Done |
 | 8. Injuries from ESPN: episodes, `/injuries`, posts, replies and edits | ✅ Done |
-| 9. Injuries from r/hockey (breaking news, attaches to the same episodes) | ⏳ Next |
+| 9. Injuries from r/hockey (breaking news, attaches to the same episodes) | ✅ Done |
 
 ## Commands
 
@@ -103,6 +103,8 @@ NHL.com has no injury data, so the backbone is ESPN's league-wide injury list (u
 | Gets more serious (out → IR) | A reply to the original post, and the original is edited to the new status |
 | Estimated return or injury changes | The original post is edited quietly |
 | Off the list for two checks in a row | A ✅ reply to the original post, and the episode closes |
+
+**Breaking news comes from r/hockey.** Injury scoops usually come from team beat reporters ("[Russo] …", "[Walker] …"), so any reporter tag counts, guarded three ways: firm wording ("placed on IR", "out week-to-week", "will miss", "underwent surgery"); no hedging up to that sentence ("left the game", "apparent injury", "will be evaluated", "expected"), with quoted speech ignored; and the named player must be on that team's NHL roster (cached for a day) or already on ESPN's injury list for it. A post that passes attaches to the same episode as ESPN's entry, so whichever source is first posts, and the other edits that post (✓ confirmed by ESPN, or the r/hockey link and reporter) instead of posting again. r/hockey can make a status more serious but never less. `/replay` previews injury posts without posting them.
 
 The first check records everyone already hurt without posting. A check where ESPN suddenly lists less than half as many injuries is skipped as a glitch. Contract holdouts and other absences ESPN marks as not injuries are ignored. Each run applies at most 30 changes and makes at most 40 Discord calls; anything left over (still a difference from the snapshot, or an update marked unsent) is picked up by the next run, and `injury_posts` keeps every update to one message per channel.
 
@@ -192,6 +194,9 @@ src/injuries/deliver.ts  Sends updates within the per-run budget; edits original
 src/injuries/tracker.ts  The 10-minute check
 src/injuries/format.ts   Injury posts, replies and the /injuries list
 src/db/injuries.ts       Snapshot, episodes, updates and posts
+src/injuries/reddit.ts   r/hockey injury rules and roster matching
+src/injuries/breaking.ts r/hockey injury post → episode → Discord
+src/db/rosters.ts        NHL.com rosters, cached in D1 for a day
 migrations/              D1 schema
 scripts/                 One-off tools (command registration)
 infra/                   Terraform: D1, Worker, cron, workers.dev route
