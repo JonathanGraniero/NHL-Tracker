@@ -47,7 +47,8 @@ export interface EspnInjury {
   shortComment?: string;
   /** DD, O, IR, SUSP. */
   type?: { abbreviation?: string };
-  details?: { type?: string; side?: string; returnDate?: string };
+  /** side is "Not Specified" (or null) when unknown. */
+  details?: { type?: string | null; side?: string | null; returnDate?: string | null };
   athlete: {
     displayName: string;
     position?: { abbreviation?: string };
@@ -69,6 +70,12 @@ const TEAM_CODES: Record<string, string> = { LA: "LAK", NJ: "NJD", SJ: "SJS", TB
 
 /** Absences ESPN lists that aren't injuries (holdouts, personal leave). */
 const NOT_INJURIES = new Set(["contract dispute", "not injury related"]);
+
+/** Values ESPN uses for "we don't know" in the injury and side fields. */
+const UNKNOWN = new Set(["not specified", "undisclosed"]);
+
+/** ESPN's placeholder notes: "ir", "ir-nr", "ltir", "out"… A real note has words. */
+const PLACEHOLDER_NOTE = /^[a-z]{1,5}(-[a-z]{1,5})*$/i;
 
 export async function fetchInjuries(): Promise<InjuryReport[]> {
   const res = await fetch(URL, {
@@ -94,8 +101,10 @@ export function parseInjuries(raw: EspnInjuriesResponse): InjuryReport[] {
 function parseInjury(e: EspnInjury): InjuryReport | undefined {
   const abbrev = e.athlete.team?.abbreviation;
   const team = abbrev ? getTeam(TEAM_CODES[abbrev] ?? abbrev)?.code : undefined;
-  const status = STATUSES[e.type?.abbreviation ?? ""] ?? statusFromText(e.status);
-  const kind = e.details?.type?.trim();
+  const kind = known(e.details?.type);
+  // ESPN sometimes files a suspension as IR with the injury type "Suspension"
+  // (e.g. a holdout suspended by his team): it's a suspension, not an injury.
+  const status = kind?.toLowerCase() === "suspension" ? "suspended" : (STATUSES[e.type?.abbreviation ?? ""] ?? statusFromText(e.status));
   if (!team || !status || (kind && NOT_INJURIES.has(kind.toLowerCase()))) return undefined;
 
   const note = e.shortComment?.trim();
@@ -105,13 +114,20 @@ function parseInjury(e: EspnInjury): InjuryReport | undefined {
     player: e.athlete.displayName,
     position: e.athlete.position?.abbreviation,
     status,
-    injury: status === "suspended" || !kind || kind === "Undisclosed" ? undefined : [e.details?.side, kind].filter(Boolean).join(" "),
+    // "Left Knee", "Upper Body"; never "Not Specified Upper Body".
+    injury: status === "suspended" || !kind ? undefined : [known(e.details?.side), kind].filter(Boolean).join(" "),
     returnDate: e.details?.returnDate?.slice(0, 10),
-    // Some entries are just "ir"; that says nothing the status doesn't.
-    note: note && note.length > 3 ? note : undefined,
+    // Placeholders like "ir" or "ir-nr" say nothing the status doesn't.
+    note: note && !PLACEHOLDER_NOTE.test(note) ? note : undefined,
     url: e.athlete.links?.find((l) => l.href?.includes("/player/"))?.href,
     updatedAt: Date.parse(e.date),
   };
+}
+
+/** The value, unless it's empty or one of ESPN's "unknown" markers. */
+function known(value: string | null | undefined): string | undefined {
+  const v = value?.trim();
+  return v && !UNKNOWN.has(v.toLowerCase()) ? v : undefined;
 }
 
 function statusFromText(status: string): InjuryStatus | undefined {

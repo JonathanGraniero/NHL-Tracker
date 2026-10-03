@@ -202,6 +202,34 @@ describe("ESPN changes", () => {
   });
 });
 
+describe("after the ESPN parsing fix", () => {
+  it("updates entries recorded with the old parsing quietly instead of announcing them again", async () => {
+    await baseline();
+    // What production recorded before the fix: an IR post and an "IR · Suspension" post.
+    await check(
+      [
+        espnEntry({ player: "Dylan Larkin", team: "DET", status: "IR", body: "Not Specified Upper Body" }),
+        espnEntry({ player: "Connor Hellebuyck", team: "WPG", status: "IR", body: "Holdout" }),
+      ],
+      T0 + 10 * MIN,
+    );
+    const before = sent.length;
+    // The same players as the fixed parser reads them.
+    await check(
+      [
+        espnEntry({ player: "Dylan Larkin", team: "DET", status: "IR", body: "Upper Body", side: "Not Specified" }),
+        espnEntry({ player: "Connor Hellebuyck", team: "WPG", status: "IR", body: "Suspension" }),
+      ],
+      T0 + 20 * MIN,
+    );
+    expect(sent.length).toBe(before);
+    const [larkin] = await openEpisodes(db, ["DET"]);
+    const [hellebuyck] = await openEpisodes(db, ["WPG"]);
+    expect(larkin).toMatchObject({ status: "ir", injury: "Upper Body" });
+    expect(hellebuyck).toMatchObject({ status: "suspended" });
+  });
+});
+
 describe("safety", () => {
   it("skips a check where most of the league vanished", async () => {
     await baseline([matthews("IR")]);

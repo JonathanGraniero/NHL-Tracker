@@ -19,6 +19,9 @@ export function espnEntry(
     note?: string;
     date?: string;
     position?: string;
+    side?: string;
+    /** ESPN's status code; defaults to `status` (ESPN files some suspensions as IR). */
+    code?: "DD" | "O" | "IR" | "SUSP";
   },
 ): EspnInjury {
   const status = over.status ?? "IR";
@@ -26,8 +29,12 @@ export function espnEntry(
     status: { DD: "Day-To-Day", O: "Out", IR: "Injured Reserve", SUSP: "Suspension" }[status],
     date: over.date ?? "2026-10-02T15:00Z",
     shortComment: over.note ?? `${over.player} (${(over.body ?? "lower body").toLowerCase()}) update, per a beat writer.`,
-    type: { abbreviation: status },
-    details: { type: over.body ?? (status === "SUSP" ? "Suspension" : "Lower Body"), returnDate: over.returnDate ?? "2026-10-20" },
+    type: { abbreviation: over.code ?? status },
+    details: {
+      type: over.body ?? (status === "SUSP" ? "Suspension" : "Lower Body"),
+      side: over.side ?? null,
+      returnDate: over.returnDate ?? "2026-10-20",
+    },
     athlete: {
       displayName: over.player,
       position: { abbreviation: over.position ?? "C" },

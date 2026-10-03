@@ -65,6 +65,31 @@ describe("parseInjuries", () => {
   });
 });
 
+describe("ESPN data quirks", () => {
+  const parse = (entry: Parameters<typeof espnEntry>[0]) =>
+    parseInjuries({ injuries: [{ displayName: "x", injuries: [espnEntry(entry)] }] })[0];
+
+  // Real entries from 2026-10-03.
+  it("drops ESPN's \"Not Specified\" side", () => {
+    expect(parse({ player: "Dylan Larkin", team: "DET", body: "Upper Body", side: "Not Specified" })?.injury).toBe("Upper Body");
+    expect(parse({ player: "X Y", team: "DET", body: "Knee", side: "Left" })?.injury).toBe("Left Knee");
+    expect(parse({ player: "X Y", team: "DET", body: "Not Specified" })?.injury).toBeUndefined();
+  });
+
+  it("treats a suspension filed as IR as a suspension", () => {
+    const hellebuyck = parse({ player: "Connor Hellebuyck", team: "WPG", status: "IR", body: "Suspension", note: "ir-nr" });
+    expect(hellebuyck).toMatchObject({ status: "suspended", injury: undefined, note: undefined });
+  });
+
+  it.each(["ir", "ir-nr", "ltir", "out", "IR"])("drops the placeholder note %j", (note) => {
+    expect(parse({ player: "X Y", team: "DET", note })?.note).toBeUndefined();
+  });
+
+  it("keeps real notes, even short ones", () => {
+    expect(parse({ player: "X Y", team: "DET", note: "Out vs. BOS." })?.note).toBe("Out vs. BOS.");
+  });
+});
+
 describe("diffInjuries", () => {
   const row = (playerKey: string, over: Partial<SnapshotRow> = {}): SnapshotRow => ({
     team: "TOR",
