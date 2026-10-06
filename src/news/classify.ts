@@ -63,15 +63,23 @@ const SPECULATION =
 const WAIVER =
   /\b(claim(s|ed)?|claiming)\b.*\bwaivers\b|\b(placed|placing|places|put|puts|putting)\b.*\bon waivers\b|\bclear(s|ed)? waivers\b|\bwaived\b|\bon waivers\b/i;
 const TRADE = /\b(acquire[sd]?|acquiring|traded|in exchange for|trade (is )?(done|complete|official))\b/i;
-const SIGNING = /\b(sign(s|ed)?|re-sign(s|ed)?|ink(s|ed)?|agreed? to (terms|an?)|extended|extension)\b/i;
+const SIGNING = /\b(sign(s|ed)?|re-sign(s|ed)?|ink(s|ed)?|agreed? to (terms|an?)|extended|extension|deal (is )?agreed)\b/i;
 /**
  * "Anaheim is extending Luneau 6 x $7.2M AAV": insiders report finished deals
  * in the present tense too. Without exact terms that wording can still mean
  * talks, so it only counts alongside CONTRACT_TERMS.
  */
-const SIGNING_IN_PROGRESS = /\b(is|are)\s+(extending|re-signing|signing)\b/i;
-/** "6 x $7.2M", "$7.2M AAV", "4-year, $5 million". */
-const CONTRACT_TERMS = /\b\d+\s*[x×]\s*\$?\d|\$\d[\d.,]*\s*(k|m|mil|million)?\s+AAV\b|\b\d+[- ]years?,?\s+\$\d/i;
+const SIGNING_IN_PROGRESS = /\b(is|are)\s+(extending|re-signing|signing|bringing (in|back))\b/i;
+/** "6 x $7.2M", "$7.2M AAV", "$1.2 mil. AAV", "10.75M AAV", "4-year, $5 million". */
+const CONTRACT_TERMS =
+  /\b\d+\s*[x×]\s*\$?\d|\$?\d[\d.,]*\s*(k|m|mil\.?|million)\s+AAV\b|\$\d[\d.,]*\s+AAV\b|\b\d+[- ]years?,?\s+\$\d/i;
+/**
+ * Teams and insiders also announce a signing as terms and a name, with no
+ * verb: "One-year contract for Arber Xhekaj", "8 x 10.75M AAV for Drake
+ * Batherson". "for" has to be followed by a capitalised name.
+ */
+const YEAR_CONTRACT_FOR = /\b([Oo]ne|[Tt]wo|[Tt]hree|[Ff]our|[Ff]ive|[Ss]ix|[Ss]even|[Ee]ight|\d)[- ][Yy]ears?[- ](contract|deal|extension|pact) for \p{Lu}/u;
+const TERMS_FOR = /\b(AAV|contract|deal|extension) for \p{Lu}/u;
 
 /** Uppercase short forms that aren't team codes. */
 const EXTRA_ABBREVIATIONS: Record<string, string> = { NJ: "NJD", TB: "TBL", LA: "LAK", SJ: "SJS", LV: "VGK" };
@@ -87,7 +95,7 @@ const WORDS_THAT_ARE_NOT_NAMES = new Set([
   "sign", "signs", "signed", "re-sign", "re-signs", "ink", "inks", "inked", "agree", "agrees", "agreed", "terms",
   "extension", "extensions", "extended", "contract", "claim", "claims", "claimed", "waivers", "acquire",
   "acquires", "acquired", "trade", "traded", "announce", "announces", "announced",
-  "year", "years", "forward", "defenceman", "defenseman", "goaltender", "goalie", "center", "centre", "winger", "f", "d", "g",
+  "year", "years", "major", "business", "forward", "defenceman", "defenseman", "goaltender", "goalie", "center", "centre", "winger", "f", "d", "g",
 ]);
 
 export function classify(input: ClassifyInput): Verdict {
@@ -163,7 +171,12 @@ export function trustedSource(tag: string | undefined, links: readonly string[])
 function transactionType(text: string, teams: readonly Team[]): TransactionType | undefined {
   if (WAIVER.test(text)) return "waiver";
   if (TRADE.test(text) || isTwoSidedTrade(text)) return "trade";
-  const signing = SIGNING.test(text) || (SIGNING_IN_PROGRESS.test(text) && CONTRACT_TERMS.test(text));
+  const terms = CONTRACT_TERMS.test(text);
+  const signing =
+    SIGNING.test(text) ||
+    (SIGNING_IN_PROGRESS.test(text) && terms) ||
+    YEAR_CONTRACT_FOR.test(text) ||
+    (terms && TERMS_FOR.test(text));
   if (signing && teams.length > 0) return "signing";
   return undefined;
 }

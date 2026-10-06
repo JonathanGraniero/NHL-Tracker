@@ -23,6 +23,11 @@ describe("confirmed moves", () => {
     // Present tense, but with the exact terms it's a done deal (missed on 2026-10-01).
     ["[Friedman] Anaheim is extending young D Tristan Luneau 6 x $7.2M AAV", [], "signing", ["ANA"], "Elliotte Friedman"],
     ["[Johnston] The Rangers are re-signing Adam Edstrom to a 2-year, $1.8M deal", [], "signing", ["NYR"], "Chris Johnston"],
+    // "Deal agreed", "bringing in", and terms announced with a name but no verb (missed on 2026-10-06).
+    ["[Dreger] The Flyers are bringing in Michael Bunting for some spark. Deal agreed to at $1.2 mil. AAV.", [], "signing", ["PHI"], "Darren Dreger"],
+    ["[Habs] One-year contract for Arber Xhekaj", [], "signing", ["MTL"], "Montréal Canadiens"],
+    ["One-year contract for Kirby Dach | Montréal Canadiens", NHL("canadiens"), "signing", ["MTL"], "NHL.com"],
+    ["[Pierre LeBrun] 8 x 10.75M AAV for Drake Batherson in Ottawa. Major business done by the Senators.", [], "signing", ["OTT"], "Pierre LeBrun"],
   ])("%s", (title, links, type, teams, source) => {
     expect(classify({ title, links })).toMatchObject({ confirmed: true, type, teams, source });
   });
@@ -49,6 +54,13 @@ describe("not posted", () => {
     ["[Friedman] Ducks, Kreider expected to agree to waivers for contract termination", [], "not confirmed yet"],
     // Present tense without terms can still mean talks.
     ["[Friedman] Anaheim is extending young D Tristan Luneau", [], "no completed"],
+    ["[Dreger] The Flyers are bringing in Michael Bunting for some spark.", [], "no completed"],
+    // Terms alone, or terms "for" something that isn't a player, aren't a signing.
+    ["[Friedman] Kreider AAV is $2.15M Bonuses can bring up to $3M more.", [], "no completed"],
+    ["[Seravalli] NHL teams doled out $204.4 million in signing bonuses for the 2027-28 season", [], "no completed"],
+    // Hedged versions stay out.
+    ["[LeBrun] Hearing the Blue Jackets will be signing UFA veteran goalie Cam Talbot, 39, to a one-year deal ($950k)", [], "not confirmed yet"],
+    ["[Friedman] A one-year contract for Bunting would make sense for the Flyers", [], "not confirmed yet"],
     ["[32 Thoughts] Potential three-way trade involving Nikishin and Hellebuyck?", [], "not from a trusted"],
     // Not player moves, or not NHL.
     ["[Kaplan] Bill Guerin has signed a multi-year contract extension as GM of the Minnesota Wild, sources told ESPN", [], "not an NHL player move"],
