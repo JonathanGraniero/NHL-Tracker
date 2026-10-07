@@ -54,6 +54,7 @@ beforeEach(async () => {
 
   vi.spyOn(globalThis, "fetch").mockImplementation(async (input, init) => {
     const url = String(input instanceof Request ? input.url : input);
+    if (url.startsWith("https://forge-dapi.d3.nhle.com/")) return Response.json({ items: [] }); // NHL.com news: quiet
     if (url.startsWith("https://www.reddit.com/r/hockey/new.rss")) {
       return new Response(feed([...redditFeed].reverse()), { status: redditStatus });
     }
@@ -199,7 +200,7 @@ describe("/replay", () => {
   });
 
   it("rejects input that isn't a Reddit post", async () => {
-    expect(await bot.command("replay", { post: "the knies trade" }, { channelId: "leafs" })).toContain("doesn't look like a Reddit post");
+    expect(await bot.command("replay", { post: "the knies trade" }, { channelId: "leafs" })).toContain("doesn't look like an r/hockey post or NHL.com article");
   });
 });
 

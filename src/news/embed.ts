@@ -23,7 +23,10 @@ export function buildMessage(event: NewsEvent): MessageBody {
         timestamp: new Date(event.publishedAt).toISOString(),
         fields: [
           { name: "Source", value: event.source, inline: true },
-          { name: "Discussion", value: `[r/hockey](${event.url})`, inline: true },
+          // NHL.com stories link to the article itself; only r/hockey has a discussion thread.
+          ...(/^https:\/\/(www\.|old\.)?reddit\.com\//.test(event.url)
+            ? [{ name: "Discussion", value: `[r/hockey](${event.url})`, inline: true }]
+            : []),
         ],
         footer: { text: "NHL Tracker · confirmed moves only" },
       },

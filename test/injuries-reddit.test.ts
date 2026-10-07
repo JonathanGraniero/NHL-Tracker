@@ -151,6 +151,7 @@ beforeEach(async () => {
 
   vi.spyOn(globalThis, "fetch").mockImplementation(async (input, init) => {
     const url = String(input instanceof Request ? input.url : input);
+    if (url.startsWith("https://forge-dapi.d3.nhle.com/")) return Response.json({ items: [] }); // NHL.com news: quiet
     if (url.startsWith("https://www.reddit.com/r/hockey/new.rss")) return new Response(rssFeed(feed));
     if (url.includes("reddit.com/by_id/t3_faber")) return new Response(rssFeed([post("t3_faber", REAL.faber, T0)]));
     if (url.includes("/webhooks/") && init?.method === "PATCH") {
