@@ -34,6 +34,7 @@ beforeEach(async () => {
       nhlCalls++;
       return nhlStatus === 200 ? Response.json(scheduleResponse(schedule[1]!)) : new Response("down", { status: nhlStatus });
     }
+    if (url.startsWith("https://forge-dapi.d3.nhle.com/")) return Response.json({ items: [] }); // NHL.com news: quiet
     if (url.startsWith("https://www.reddit.com/")) return new Response("<feed></feed>");
     const channel = url.match(/discord\.com\/api\/v10\/channels\/([^/]+)\/messages/);
     if (channel) {

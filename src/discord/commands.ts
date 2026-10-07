@@ -24,6 +24,7 @@ import { divisionsOf, fetchStandings, isConference, isDivision, type Conference 
 import { standingsMessage, type StandingsView } from "../standings/format";
 import { processItem, type Outcome } from "../news/pipeline";
 import { RedditError, fetchPost, postIdFromInput } from "../sources/reddit";
+import { fetchStory, storySlugFromUrl } from "../sources/nhl-news";
 import { STATUS_LABELS, injuryListMessage } from "../injuries/format";
 import { previewInjury, type InjuryOutcome } from "../injuries/breaking";
 import { openEpisodes } from "../db/injuries";
@@ -80,11 +81,11 @@ export const COMMANDS = [
   },
   {
     name: "replay",
-    description: "Run an r/hockey post through the filter and, if it's a confirmed move, post it in this server.",
+    description: "Run an r/hockey post or NHL.com article through the filter; post it here if it's a confirmed move.",
     default_member_permissions: MANAGE_GUILD,
     contexts: GUILD_ONLY,
     options: [
-      { type: OptionType.STRING, name: "post", description: "Link to the r/hockey post", required: true },
+      { type: OptionType.STRING, name: "post", description: "Link to the r/hockey post or NHL.com article", required: true },
     ],
   },
   {
@@ -273,19 +274,21 @@ function countryLabel(country: Country): string {
 function replay(env: Env, ctx: ExecutionContext, guildId: string, interaction: Interaction): InteractionResponse {
   const input = stringOption(interaction, "post");
   const postId = postIdFromInput(input);
-  if (!postId) return reply(`❌ That doesn't look like a Reddit post link: "${input}"`);
+  const storySlug = postId ? undefined : storySlugFromUrl(input);
+  if (!postId && !storySlug) return reply(`❌ That doesn't look like an r/hockey post or NHL.com article link: "${input}"`);
 
   ctx.waitUntil(
     (async () => {
       let content: string;
       try {
-        const item = await fetchPost(postId);
+        const item = postId ? await fetchPost(postId) : await fetchStory(storySlug!);
         if (!item) {
-          content = "❌ Reddit doesn't have a post with that link.";
+          content = postId ? "❌ Reddit doesn't have a post with that link." : "❌ NHL.com doesn't have an article with that link.";
         } else {
           const outcome = await processItem(env, item, { now: Date.now(), guildId });
           // Not a move: maybe an injury. Injuries are only previewed; posting them belongs to the live feed.
-          const injury = outcome.kind === "rejected" ? await previewInjury(env.DB, item, Date.now()) : undefined;
+          const injury =
+            outcome.kind === "rejected" && item.source === "reddit" ? await previewInjury(env.DB, item, Date.now()) : undefined;
           content =
             injury && injury.kind !== "not-injury" ? describeInjuryReplay(injury, item.title) : describeReplay(outcome, item.title);
         }

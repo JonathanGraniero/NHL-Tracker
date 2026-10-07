@@ -27,7 +27,7 @@ A Discord bot that posts **confirmed** NHL trades, waiver moves and signings to 
 | `/subscribe team:<team> [trades] [waivers] [signings] [injuries] [games]` | Manage Server | Follow a team in this channel. Pick **⭐ All teams** to follow the whole league. Set a type to `False` to skip it; for example, `/subscribe team:Leafs waivers:False` posts only trades and signings. `injuries:True` adds injury posts (off by default, see below). `games:True` adds a morning post of the day's games and where they're on TV (off by default). Running it again for the same team updates its types. |
 | `/unsubscribe team:<team>` | Manage Server | Stop following a team. Autocomplete lists only this channel's teams, plus **Remove all**. |
 | `/subscriptions` | Everyone | List what this channel follows. |
-| `/replay post:<link>` | Manage Server | Run an r/hockey post through the filter. If it's a confirmed move, post it to this server's subscribed channels (even if it's old), otherwise say why not. Handy for testing a new channel. |
+| `/replay post:<link>` | Manage Server | Run an r/hockey post or NHL.com article through the filter. If it's a confirmed move, post it to this server's subscribed channels (even if it's old), otherwise say why not. Handy for testing a new channel. |
 | `/games [day] [team] [country]` | Everyone | A day's games (today by default) with start times in your time zone and where they're on TV, grouped under 🇺🇸 and 🇨🇦. `country:` shows only US or only Canadian channels for this one call; without it, the channel's `/tv` setting applies. Visible to the whole channel. Also works in DMs. |
 | `/tv country:<United States \| Canada \| Both>` | Manage Server | Choose which country's TV channels this channel's game posts show (the morning post and `/games`). Saved per channel; `/subscriptions` shows it. |
 | `/injuries [team]` | Everyone | Who's on the injury list: status, injury and estimated return. Every team by default. Visible to the whole channel. |
@@ -39,13 +39,15 @@ Subscriptions belong to a **channel**, so one server can have `#leafs-news` foll
 ## How it works
 
 ```
-Cron (every 2 min) ──► scheduled()  → fetch r/hockey → filter → dedupe → post
+Cron (every 2 min) ──► scheduled()  → fetch r/hockey + NHL.com transactions → filter → dedupe → post
 Cron (every 10 min) ──► scheduled()  → ESPN injury list → diff → episodes → post / reply / edit
 Cron (daily 15:00Z) ──► scheduled()  → NHL schedule → post today's games to subscribed channels
 Discord command    ──► fetch() /interactions → verify signature → handle
 ```
 
-Every 2 minutes the Worker reads the newest 100 posts on r/hockey through its RSS feed. Reddit blocks its JSON API from Workers, and the RSS rate limit is shared across Cloudflare's IPs, so a `429` is expected now and then; the next run catches up. The very first run only marks the existing posts as seen, so a new install doesn't post a backlog, and posts older than 6 hours are never posted.
+Every 2 minutes the Worker reads two sources: the newest 100 posts on r/hockey (insider scoops, usually first) and NHL.com's transaction news, the stories every team's site tags "transactions" (the official record, including moves that never reach r/hockey, like a prospect's entry-level deal posted only on a team subreddit). Both go through the same filter and the same dedupe, so a move reported in both places is posted once. NHL.com's feed is read through its public content API; recalls, assignments and roster announcements in it are skipped.
+
+On r/hockey, the Worker reads the RSS feed. Reddit blocks its JSON API from Workers, and the RSS rate limit is shared across Cloudflare's IPs, so a `429` is expected now and then; the next run catches up. The very first run only marks the existing posts as seen, so a new install doesn't post a backlog, and posts older than 6 hours are never posted.
 
 ### What counts as confirmed
 
@@ -174,6 +176,7 @@ src/data/teams.ts        All 32 teams with headline aliases, colours and lookup 
 src/db/subscriptions.ts  Subscription reads and writes (D1)
 src/db/events.ts         Seen items, events and posted messages (the three dedupe layers)
 src/sources/reddit.ts    r/hockey RSS fetch and parse
+src/sources/nhl-news.ts  NHL.com transaction stories (content API), with links to each article
 src/news/classify.ts     Confirmed-only filter: source, wording, type, teams
 src/news/pipeline.ts     Scan → classify → dedupe → post
 src/news/embed.ts        The Discord embed for a move

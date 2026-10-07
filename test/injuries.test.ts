@@ -36,6 +36,7 @@ beforeEach(async () => {
     if (url.startsWith("https://site.api.espn.com/")) {
       return espnStatus === 200 ? Response.json(espn) : new Response("down", { status: espnStatus });
     }
+    if (url.startsWith("https://forge-dapi.d3.nhle.com/")) return Response.json({ items: [] }); // NHL.com news: quiet
     if (url.startsWith("https://www.reddit.com/")) return new Response("<feed></feed>");
     const edit = url.match(/discord\.com\/api\/v10\/channels\/([^/]+)\/messages\/([^/]+)$/);
     if (edit && init?.method === "PATCH") {

@@ -83,3 +83,16 @@ export function searchTeams(query: string): Team[] {
   }
   return [...starts, ...contains];
 }
+
+/** Nicknames with two words; every other team's nickname is the last word of its name. */
+const TWO_WORD_NICKNAMES = ["Maple Leafs", "Blue Jackets", "Golden Knights", "Red Wings"];
+/** Teams whose nhl.com section isn't their nickname. */
+const NHL_COM_PATH_EXCEPTIONS: Record<string, string> = { UTA: "utah" };
+
+/** The team's section of nhl.com: "islanders" for nhl.com/islanders/news/…. */
+export function nhlComPath(code: string): string | undefined {
+  const team = getTeam(code);
+  if (!team) return undefined;
+  const nickname = TWO_WORD_NICKNAMES.find((n) => team.name.endsWith(n)) ?? team.name.split(" ").at(-1)!;
+  return NHL_COM_PATH_EXCEPTIONS[team.code] ?? nickname.toLowerCase().replace(/[^a-z]/g, "");
+}

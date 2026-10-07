@@ -16,6 +16,7 @@ import {
 } from "../db/events";
 import { findChannelsFor } from "../db/subscriptions";
 import { RedditError, fetchNewPosts, type SourceItem } from "../sources/reddit";
+import { NhlNewsError, fetchTransactions } from "../sources/nhl-news";
 import { Budget } from "../injuries/deliver";
 import { processInjuryItem, type InjuryOutcome } from "../injuries/breaking";
 import type { InjuryStatus } from "../sources/espn-injuries";
@@ -31,37 +32,71 @@ const DEDUPE_WINDOW_MS = 48 * 60 * 60 * 1000;
  * requests per run, shared with Reddit, roster lookups and trade posts.
  */
 const INJURY_BUDGET = 20;
-/** Set once the first scan has marked the existing feed as seen, so the bot doesn't post a backlog. */
-const READY_KEY = "reddit_ready";
+/** Where news comes from. Each keeps its own seen items and first-run baseline. */
+interface NewsSource {
+  name: SourceItem["source"];
+  /** Set once the first scan has marked the existing feed as seen, so the bot doesn't post a backlog. */
+  readyKey: string;
+  fetch: () => Promise<SourceItem[]>;
+  /** Outages that just mean "try again next run". */
+  isUnavailable: (err: unknown) => err is RedditError | NhlNewsError;
+  /** Also look for breaking injury news (r/hockey only; NHL.com's feed is for moves). */
+  injuries: boolean;
+}
+
+const SOURCES: readonly NewsSource[] = [
+  {
+    name: "reddit",
+    readyKey: "reddit_ready",
+    fetch: fetchNewPosts,
+    isUnavailable: (err): err is RedditError => err instanceof RedditError,
+    injuries: true,
+  },
+  {
+    name: "nhl",
+    readyKey: "nhl_news_ready",
+    fetch: fetchTransactions,
+    isUnavailable: (err): err is NhlNewsError => err instanceof NhlNewsError,
+    injuries: false,
+  },
+];
 
 export type Outcome =
   | { kind: "rejected"; reason: string }
   | { kind: "duplicate"; event: NewsEvent }
   | { kind: "posted"; event: NewsEvent; channels: string[]; failed: string[] };
 
-/** Runs on the cron: fetch r/hockey, then classify, dedupe and post anything new. */
+/**
+ * Runs on the cron: fetch r/hockey and NHL.com's transaction news, then
+ * classify, dedupe and post anything new. A move reported in both places is
+ * one event, posted once.
+ */
 export async function runScan(env: Env, now: number): Promise<void> {
+  const injuryBudget = new Budget(INJURY_BUDGET);
+  for (const source of SOURCES) await scanSource(env, now, source, injuryBudget);
+}
+
+async function scanSource(env: Env, now: number, source: NewsSource, injuryBudget: Budget): Promise<void> {
   let items: SourceItem[];
   try {
-    items = await fetchNewPosts();
+    items = await source.fetch();
   } catch (err) {
-    if (err instanceof RedditError) {
-      console.warn(`reddit: ${err.message}, trying again next run`);
+    if (source.isUnavailable(err)) {
+      console.warn(`${source.name}: ${err.message}, trying again next run`);
       return;
     }
     throw err;
   }
 
-  const unseen = new Set(await filterUnseen(env.DB, "reddit", items.map((i) => i.id)));
+  const unseen = new Set(await filterUnseen(env.DB, source.name, items.map((i) => i.id)));
 
-  if (!(await getState(env.DB, READY_KEY))) {
-    for (const item of items) await markSeen(env.DB, "reddit", item.id, now);
-    await setState(env.DB, READY_KEY, String(now));
-    console.log(`reddit: first run, marked ${items.length} existing posts as seen without posting`);
+  if (!(await getState(env.DB, source.readyKey))) {
+    for (const item of items) await markSeen(env.DB, source.name, item.id, now);
+    await setState(env.DB, source.readyKey, String(now));
+    console.log(`${source.name}: first run, marked ${items.length} existing items as seen without posting`);
     return;
   }
 
-  const injuryBudget = new Budget(INJURY_BUDGET);
   for (const item of items) {
     if (!unseen.has(item.id)) continue;
     if (now - item.publishedAt > MAX_AGE_MS) {
@@ -69,12 +104,13 @@ export async function runScan(env: Env, now: number): Promise<void> {
     } else {
       const outcome = await processItem(env, item, { now });
       // Not a confirmed move: maybe breaking injury news.
-      const injury = outcome.kind === "rejected" ? await processInjuryItem(env, item, now, injuryBudget) : undefined;
+      const injury =
+        source.injuries && outcome.kind === "rejected" ? await processInjuryItem(env, item, now, injuryBudget) : undefined;
       log({ item: item.id, title: item.title, ...(injury && injury.kind !== "not-injury" ? describeInjury(injury) : describe(outcome)) });
     }
     // Marked only after processing: if this run dies mid-post, the next run
     // picks the item up again and processItem finishes the remaining channels.
-    await markSeen(env.DB, "reddit", item.id, now);
+    await markSeen(env.DB, source.name, item.id, now);
   }
 }
 

@@ -95,7 +95,7 @@ const WORDS_THAT_ARE_NOT_NAMES = new Set([
   "sign", "signs", "signed", "re-sign", "re-signs", "ink", "inks", "inked", "agree", "agrees", "agreed", "terms",
   "extension", "extensions", "extended", "contract", "claim", "claims", "claimed", "waivers", "acquire",
   "acquires", "acquired", "trade", "traded", "announce", "announces", "announced",
-  "year", "years", "major", "business", "forward", "defenceman", "defenseman", "goaltender", "goalie", "center", "centre", "winger", "f", "d", "g",
+  "year", "years", "major", "business", "place", "places", "placed", "transactions", "forward", "defenceman", "defenseman", "goaltender", "goalie", "center", "centre", "winger", "f", "d", "g",
 ]);
 
 export function classify(input: ClassifyInput): Verdict {

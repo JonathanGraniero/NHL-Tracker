@@ -4,7 +4,8 @@
 // so a 429 is normal and the next cron run simply tries again.
 
 export interface SourceItem {
-  source: "reddit";
+  /** Where it came from: r/hockey, or NHL.com's transactions feed. */
+  source: "reddit" | "nhl";
   /** Reddit fullname, e.g. "t3_1wsqy36". */
   id: string;
   title: string;
