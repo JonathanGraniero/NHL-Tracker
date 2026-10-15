@@ -63,6 +63,14 @@ const SPECULATION =
 const WAIVER =
   /\b(claim(s|ed)?|claiming)\b.*\bwaivers\b|\b(placed|placing|places|put|puts|putting)\b.*\bon waivers\b|\bclear(s|ed)? waivers\b|\bwaived\b|\bon waivers\b/i;
 const TRADE = /\b(acquire[sd]?|acquiring|traded|in exchange for|trade (is )?(done|complete|official))\b/i;
+/**
+ * Teams announce trades verb first: "Maple Leafs complete trade with
+ * Vancouver" (missed on 2026-10-14), "Blues finalize three-team trade",
+ * "Rangers announce trade". After "to", "should", "can" or a negation it's a
+ * plan, not news: "set to complete trade", "haven't completed the trade".
+ */
+const TRADE_ANNOUNCED =
+  /(?<!(?:\bto|\bshould|\bcan|\bnot|\bnever|n['’]t)\s+)\b(complete[sd]?|finali[sz]e[sd]?|announce[sd]?)\s+(?:(?:a|an|the)\s+)?(?:[\w-]+\s+)?trade\b(?![- ](deadline|freeze))/i;
 const SIGNING = /\b(sign(s|ed)?|re-sign(s|ed)?|ink(s|ed)?|agreed? to (terms|an?)|extended|extension|deal (is )?agreed)\b/i;
 /**
  * "Anaheim is extending Luneau 6 x $7.2M AAV": insiders report finished deals
@@ -95,6 +103,7 @@ const WORDS_THAT_ARE_NOT_NAMES = new Set([
   "sign", "signs", "signed", "re-sign", "re-signs", "ink", "inks", "inked", "agree", "agrees", "agreed", "terms",
   "extension", "extensions", "extended", "contract", "claim", "claims", "claimed", "waivers", "acquire",
   "acquires", "acquired", "trade", "traded", "announce", "announces", "announced",
+  "complete", "completes", "completed", "finalize", "finalizes", "finalized", "finalise", "finalises", "finalised",
   "year", "years", "major", "business", "place", "places", "placed", "transactions", "forward", "defenceman", "defenseman", "goaltender", "goalie", "center", "centre", "winger", "f", "d", "g",
 ]);
 
@@ -170,7 +179,7 @@ export function trustedSource(tag: string | undefined, links: readonly string[])
 
 function transactionType(text: string, teams: readonly Team[]): TransactionType | undefined {
   if (WAIVER.test(text)) return "waiver";
-  if (TRADE.test(text) || isTwoSidedTrade(text)) return "trade";
+  if (TRADE.test(text) || TRADE_ANNOUNCED.test(text) || isTwoSidedTrade(text)) return "trade";
   const terms = CONTRACT_TERMS.test(text);
   const signing =
     SIGNING.test(text) ||

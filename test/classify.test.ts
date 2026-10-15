@@ -28,8 +28,23 @@ describe("confirmed moves", () => {
     ["[Habs] One-year contract for Arber Xhekaj", [], "signing", ["MTL"], "Montréal Canadiens"],
     ["One-year contract for Kirby Dach | Montréal Canadiens", NHL("canadiens"), "signing", ["MTL"], "NHL.com"],
     ["[Pierre LeBrun] 8 x 10.75M AAV for Drake Batherson in Ottawa. Major business done by the Senators.", [], "signing", ["OTT"], "Pierre LeBrun"],
+    // Verb-first trade announcements, in each casing NHL.com uses (missed on 2026-10-14).
+    ["Maple Leafs complete trade with Vancouver", NHL("mapleleafs"), "trade", ["TOR", "VAN"], "NHL.com"],
+    ["Maple Leafs Complete Trade With Vancouver", NHL("mapleleafs"), "trade", ["TOR", "VAN"], "NHL.com"],
+    ["MAPLE LEAFS COMPLETE TRADE WITH VANCOUVER", NHL("mapleleafs"), "trade", ["TOR", "VAN"], "NHL.com"],
+    ["Canucks complete trade with Maple Leafs", NHL("canucks"), "trade", ["VAN", "TOR"], "NHL.com"],
+    ["Blues finalize three-team trade with Sharks and Ducks", NHL("blues"), "trade", ["STL", "SJS", "ANA"], "NHL.com"],
+    ["Rangers announce trade with Kings", NHL("rangers"), "trade", ["NYR", "LAK"], "NHL.com"],
+    ["[Friedman] Toronto and Vancouver have completed the trade", [], "trade", ["TOR", "VAN"], "Elliotte Friedman"],
   ])("%s", (title, links, type, teams, source) => {
     expect(classify({ title, links })).toMatchObject({ confirmed: true, type, teams, source });
+  });
+
+  it("doesn't mistake the verb for a player in Title Case or capitals", () => {
+    for (const title of ["Maple Leafs Complete Trade With Vancouver", "MAPLE LEAFS COMPLETE TRADE WITH VANCOUVER", "Blues Finalize Trade With Sharks"]) {
+      const v = classify({ title, links: NHL("mapleleafs") });
+      expect(v.confirmed && v.players).toEqual([]);
+    }
   });
 
   it("names the players in a trade", () => {
@@ -70,6 +85,17 @@ describe("not posted", () => {
     ["[Johnston] Notable players on waivers today", [], "no NHL team named"],
     ["[VAN 5 - EDM (3)] Podkolzin taps it in for his first of the year", [], "not from a trusted"],
     ["Post Game Thread: Montréal Canadiens @ Toronto Maple Leafs", NHL("mapleleafs"), "no completed"],
+    // "Complete/finalize/announce a trade" as a plan, not news.
+    ["[Friedman] Toronto and Vancouver set to complete trade", [], "no completed"],
+    ["[LeBrun] Leafs looking to complete a trade with Vancouver before the season", [], "no completed"],
+    ["[Johnston] Toronto and Vancouver haven't completed the trade yet", [], "no completed"],
+    ["[Dreger] Toronto and Vancouver have not finalized the trade", [], "no completed"],
+    ["[Dreger] Leafs should complete the trade with Vancouver today", [], "no completed"],
+    ["[Friedman] Toronto, Vancouver expected to complete trade", [], "not confirmed yet"],
+    ["[Friedman] Toronto and Vancouver to announce trade shortly", [], "no completed"],
+    ["Did the Maple Leafs complete trade with Vancouver?", NHL("mapleleafs"), "not confirmed yet"],
+    ["Maple Leafs complete trade deadline preparations", NHL("mapleleafs"), "no completed"],
+    ["Maple Leafs announce trade freeze plans for holiday roster", NHL("mapleleafs"), "no completed"],
   ])("%s", (title, links, reason) => {
     const v = classify({ title, links });
     expect(v.confirmed).toBe(false);

@@ -55,7 +55,7 @@ A post is posted only if **all** of these hold (see [`src/news/classify.ts`](src
 
 1. **Trusted source:** a `[Tag]` naming a trusted insider (Friedman, LeBrun, Johnston, Dreger, McKenzie, Seravalli, Kaplan, PuckPedia, NHL PR) or a team, or a link to nhl.com or to one of those insiders' tweets.
 2. **No hedging** up to the sentence that states the move: "not a done deal", "closing in", "nearing", "expected", "talks", "rework", questions, and so on.
-3. **Completed-move wording:** *acquired*, *traded*, *in exchange for*, the `Team: players / Team: players` format (trades); *claimed off waivers*, *placed on waivers* (waivers); *signed*, *agreed to terms*, *extension* (signings).
+3. **Completed-move wording:** *acquired*, *traded*, *in exchange for*, *complete/finalize/announce a trade* (but not after *to*, *should* or a negation, as in "set to complete trade"), the `Team: players / Team: players` format (trades); *claimed off waivers*, *placed on waivers* (waivers); *signed*, *agreed to terms*, *extension* (signings).
 4. **An NHL team** is named (or is in the nhl.com link), and it's a player move: coaches, GMs, PTOs and AHL/KHL contracts are skipped.
 
 For the Knies–Marchenko trade, LeBrun's "proposed … not a done deal yet" and Friedman's "rework the trade" were skipped, and Friedman's `Columbus: Knies, Lorentz, Andrae and a 2nd / Tor: Marchenko, Miles Wood, Merzlikins` was posted.

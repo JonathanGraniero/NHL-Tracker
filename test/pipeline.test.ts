@@ -5,6 +5,7 @@ import worker from "../src/index";
 import { ALL_TEAMS, upsertSubscription } from "../src/db/subscriptions";
 import { MAX_AGE_MS, processItem, runScan } from "../src/news/pipeline";
 import { parseFeed, type SourceItem } from "../src/sources/reddit";
+import { parseStories } from "../src/sources/nhl-news";
 import { createTestD1 } from "./helpers/d1";
 import { createTestBot, requestJson, type TestBot } from "./helpers/discord";
 import type { MessageBody } from "../src/discord/api";
@@ -155,6 +156,37 @@ describe("processItem", () => {
     const again = await processItem(bot.env, friedmanTrade, { now: TRADE_TIME + 60_000 });
     expect(again).toMatchObject({ kind: "posted", channels: [] });
     expect(sent).toHaveLength(3);
+  });
+
+  describe("a verb-first trade headline on NHL.com (missed on 2026-10-14)", () => {
+    const LEAFS_CANUCKS = Date.parse("2026-10-14T18:00:00Z");
+    const [story] = parseStories({
+      items: [
+        {
+          slug: "maple-leafs-complete-trade-with-vancouver-x8932",
+          title: "Maple Leafs complete trade with Vancouver",
+          contentDate: new Date(LEAFS_CANUCKS).toISOString(),
+          context: { slug: "teamid-10" },
+          tags: [{ slug: "teamid-10", title: "Toronto Maple Leafs" }],
+        },
+      ],
+    });
+
+    it("is posted to channels following either team", async () => {
+      expect(story!.url).toBe("https://www.nhl.com/mapleleafs/news/maple-leafs-complete-trade-with-vancouver-x8932");
+      expect(await processItem(bot.env, story!, { now: LEAFS_CANUCKS })).toMatchObject({
+        kind: "posted",
+        event: { type: "trade", teams: ["TOR", "VAN"], source: "NHL.com" },
+      });
+      expect(sent.map((s) => s.channelId).sort()).toEqual(["leafs", "league"]);
+    });
+
+    it("isn't posted again when an insider already reported the trade", async () => {
+      const friedman = post("t3_f", "[Friedman] Vancouver: Player One and a 3rd Tor: Player Two", LEAFS_CANUCKS - 20 * 60_000);
+      expect(await processItem(bot.env, friedman, { now: LEAFS_CANUCKS - 20 * 60_000 })).toMatchObject({ kind: "posted" });
+      expect(await processItem(bot.env, story!, { now: LEAFS_CANUCKS })).toMatchObject({ kind: "duplicate" });
+      expect(sent).toHaveLength(2);
+    });
   });
 
   it("keeps separate signings for the same team apart", async () => {
