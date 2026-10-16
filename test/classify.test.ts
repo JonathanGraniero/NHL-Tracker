@@ -41,7 +41,13 @@ describe("confirmed moves", () => {
   });
 
   it("doesn't mistake the verb for a player in Title Case or capitals", () => {
-    for (const title of ["Maple Leafs Complete Trade With Vancouver", "MAPLE LEAFS COMPLETE TRADE WITH VANCOUVER", "Blues Finalize Trade With Sharks"]) {
+    for (const title of [
+      "Maple Leafs Complete Trade With Vancouver",
+      "MAPLE LEAFS COMPLETE TRADE WITH VANCOUVER",
+      "Blues Finalize Trade With Sharks",
+      "Blues Finalize Three-Team Trade With Sharks And Ducks",
+      "Golden Knights Complete Blockbuster Trade With Wild",
+    ]) {
       const v = classify({ title, links: NHL("mapleleafs") });
       expect(v.confirmed && v.players).toEqual([]);
     }
@@ -93,6 +99,13 @@ describe("not posted", () => {
     ["[Dreger] Leafs should complete the trade with Vancouver today", [], "no completed"],
     ["[Friedman] Toronto, Vancouver expected to complete trade", [], "not confirmed yet"],
     ["[Friedman] Toronto and Vancouver to announce trade shortly", [], "no completed"],
+    ["[Friedman] Toronto and Vancouver set to officially complete trade", [], "no completed"],
+    ["[Johnston] Toronto and Vancouver haven't yet completed the trade", [], "no completed"],
+    ["[Dreger] Toronto and Vancouver have not yet finalized the trade", [], "no completed"],
+    ["[LeBrun] The Leafs haven’t officially announced the trade", [], "no completed"],
+    ["[Friedman] Toronto and Vancouver cannot complete trade until Monday", [], "no completed"],
+    ["[Friedman] Toronto and Vancouver can now complete trade", [], "no completed"],
+    ["[Friedman] Toronto and Vancouver cant complete trade until Monday", [], "no completed"],
     ["Did the Maple Leafs complete trade with Vancouver?", NHL("mapleleafs"), "not confirmed yet"],
     ["Maple Leafs complete trade deadline preparations", NHL("mapleleafs"), "no completed"],
     ["Maple Leafs announce trade freeze plans for holiday roster", NHL("mapleleafs"), "no completed"],
