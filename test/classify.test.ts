@@ -1,117 +1,99 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { classify } from "../src/news/classify";
+import type { Headline, ReadHeadline, Reading } from "../src/news/model";
 
 // Real r/hockey titles from August–September 2026. The links are what each
-// post pointed at; official team news lives on nhl.com/<team>/.
+// post pointed at; official team news lives on nhl.com/<team>/. Whether the
+// wording means a finished move is Claude's call, measured by `npm run eval`;
+// these tests cover what the code decides and how Claude's answer is used.
 const NHL = (team: string) => [`https://www.nhl.com/${team}/news/some-release`];
 const TWEET = (handle: string) => [`https://xcancel.com/${handle}/status/1?s=20`];
 
-describe("confirmed moves", () => {
+/** A reader that always gives `reading`, and records what it was asked. */
+function reader(reading: Reading) {
+  return vi.fn<ReadHeadline>(async () => reading);
+}
+const done = (move: "trade" | "waiver" | "signing", players: string[] = []): Reading => ({ ok: true, move, done: true, players, reason: "reported as done" });
+
+describe("checks made before asking Claude", () => {
   it.each([
-    // The Knies–Marchenko trade, as Friedman reported it once it was done.
-    ["[Friedman] Columbus: Knies, Lorentz, Andrae and a 2nd Tor: Marchenko, Miles Wood, Merzlikins (some retained salary)", [], "trade", ["CBJ", "TOR"], "Elliotte Friedman"],
-    ["The New Jersey Devils announced today that the team has acquired forward Luke Evangelista in a trade with Nashville in exchange for Colorado’s 2028 first-round pick (conditional) and New Jersey’s 2028 second-round pick", NHL("devils"), "trade", ["NJD", "NSH"], "NHL.com"],
-    ["Canucks claim Leevi Merilainen off waivers from Ottawa", NHL("canucks"), "waiver", ["VAN", "OTT"], "NHL.com"],
-    ["[Johnston] The Leafs are placing Steven Lorentz on waivers this afternoon.", [], "waiver", ["TOR"], "Chris Johnston"],
-    ["[Friedman] Gaudet (STL) on waivers", [], "waiver", ["STL"], "Elliotte Friedman"],
-    ["[Vegas Golden Knights] William Karlsson extended 2 X 6.75M", [], "signing", ["VGK"], "Vegas Golden Knights"],
-    ["[Montreal Canadiens] Four-year contract extension for Alex Newhook (5.5M AAV)", [], "signing", ["MTL"], "Montréal Canadiens"],
-    ["[Kaplan] Cale Makar has agreed to an eight year extension with the Colorado Avalanche. $20.4 million AAV. He will be the highest paid player in NHL history.", [], "signing", ["COL"], "Emily Kaplan"],
-    ["Dallas Stars sign Goaltender Casey DeSmith to a two-year, $5 million contract extension (2x$2.5m AAV)", NHL("stars"), "signing", ["DAL"], "NHL.com"],
-    ["We have signed Noah Ostlund to an eight-year contract extension with an AAV of $6.6 million.", NHL("sabres"), "signing", ["BUF"], "NHL.com"],
-    ["Leafs acquire forward from Ottawa", TWEET("PierreVLeBrun"), "trade", ["TOR", "OTT"], "Pierre LeBrun"],
-    // Present tense, but with the exact terms it's a done deal (missed on 2026-10-01).
-    ["[Friedman] Anaheim is extending young D Tristan Luneau 6 x $7.2M AAV", [], "signing", ["ANA"], "Elliotte Friedman"],
-    ["[Johnston] The Rangers are re-signing Adam Edstrom to a 2-year, $1.8M deal", [], "signing", ["NYR"], "Chris Johnston"],
-    // "Deal agreed", "bringing in", and terms announced with a name but no verb (missed on 2026-10-06).
-    ["[Dreger] The Flyers are bringing in Michael Bunting for some spark. Deal agreed to at $1.2 mil. AAV.", [], "signing", ["PHI"], "Darren Dreger"],
-    ["[Habs] One-year contract for Arber Xhekaj", [], "signing", ["MTL"], "Montréal Canadiens"],
-    ["One-year contract for Kirby Dach | Montréal Canadiens", NHL("canadiens"), "signing", ["MTL"], "NHL.com"],
-    ["[Pierre LeBrun] 8 x 10.75M AAV for Drake Batherson in Ottawa. Major business done by the Senators.", [], "signing", ["OTT"], "Pierre LeBrun"],
-    // Verb-first trade announcements, in each casing NHL.com uses (missed on 2026-10-14).
-    ["Maple Leafs complete trade with Vancouver", NHL("mapleleafs"), "trade", ["TOR", "VAN"], "NHL.com"],
-    ["Maple Leafs Complete Trade With Vancouver", NHL("mapleleafs"), "trade", ["TOR", "VAN"], "NHL.com"],
-    ["MAPLE LEAFS COMPLETE TRADE WITH VANCOUVER", NHL("mapleleafs"), "trade", ["TOR", "VAN"], "NHL.com"],
-    ["Canucks complete trade with Maple Leafs", NHL("canucks"), "trade", ["VAN", "TOR"], "NHL.com"],
-    ["Blues finalize three-team trade with Sharks and Ducks", NHL("blues"), "trade", ["STL", "SJS", "ANA"], "NHL.com"],
-    ["Rangers announce trade with Kings", NHL("rangers"), "trade", ["NYR", "LAK"], "NHL.com"],
-    ["[Friedman] Toronto and Vancouver have completed the trade", [], "trade", ["TOR", "VAN"], "Elliotte Friedman"],
-  ])("%s", (title, links, type, teams, source) => {
-    expect(classify({ title, links })).toMatchObject({ confirmed: true, type, teams, source });
-  });
-
-  it("doesn't mistake the verb for a player in Title Case or capitals", () => {
-    for (const title of [
-      "Maple Leafs Complete Trade With Vancouver",
-      "MAPLE LEAFS COMPLETE TRADE WITH VANCOUVER",
-      "Blues Finalize Trade With Sharks",
-      "Blues Finalize Three-Team Trade With Sharks And Ducks",
-      "Golden Knights Complete Blockbuster Trade With Wild",
-    ]) {
-      const v = classify({ title, links: NHL("mapleleafs") });
-      expect(v.confirmed && v.players).toEqual([]);
-    }
-  });
-
-  it("names the players in a trade", () => {
-    const v = classify({ title: "[Friedman] Columbus: Knies, Lorentz, Andrae and a 2nd Tor: Marchenko, Miles Wood, Merzlikins (some retained salary)", links: [] });
-    expect(v.confirmed && v.players).toEqual(["Knies", "Lorentz", "Andrae", "Marchenko", "Miles Wood", "Merzlikins"]);
-  });
-});
-
-describe("not posted", () => {
-  it.each([
-    // Earlier reports of the same trade, before it was done.
-    ["[LeBrun] The proposed Leafs-Blue Jackets trade involves multiple pieces, including Knies and Marchenko, and it's not a done deal yet.", [], "not confirmed yet"],
-    ["[Friedman] Okay, sorry for the delay. I believe the math forced Toronto/Columbus to rework the trade Still involves Marchenko, Knies & Merzlikins", [], "not confirmed yet"],
-    ["[Friedman] It sounds like Columbus gave Toronto permission to speak to Marchenko about an extension.", [], "not confirmed yet"],
-    // Commentary and fan posts about it.
     ["[The Athletic] NHL trade grades: Leafs, Blue Jackets make mutually beneficial Knies-Marchenko swap", [], "not from a trusted"],
     ["Matthew Knies was traded by all 3 of his GMs in Toronto", [], "not from a trusted"],
-    ["[LeBrun] A little sidenote to the blockbuster trade from yesterday, Toronto was on Elvis Merzlikins' no-move list", [], "no completed"],
-    // Other speculation.
-    ["[Kaplan]: The Vegas Golden Knights are closing in on a contract extension with William Karlsson, sources told ESPN.", [], "not confirmed yet"],
-    ["[Friedman] Sources: Senators nearing eight-year contract extension with Drake Batherson", [], "not confirmed yet"],
-    ["[Friedman] Ducks, Kreider expected to agree to waivers for contract termination", [], "not confirmed yet"],
-    // Present tense without terms can still mean talks.
-    ["[Friedman] Anaheim is extending young D Tristan Luneau", [], "no completed"],
-    ["[Dreger] The Flyers are bringing in Michael Bunting for some spark.", [], "no completed"],
-    // Terms alone, or terms "for" something that isn't a player, aren't a signing.
-    ["[Friedman] Kreider AAV is $2.15M Bonuses can bring up to $3M more.", [], "no completed"],
-    ["[Seravalli] NHL teams doled out $204.4 million in signing bonuses for the 2027-28 season", [], "no completed"],
-    // Hedged versions stay out.
-    ["[LeBrun] Hearing the Blue Jackets will be signing UFA veteran goalie Cam Talbot, 39, to a one-year deal ($950k)", [], "not confirmed yet"],
-    ["[Friedman] A one-year contract for Bunting would make sense for the Flyers", [], "not confirmed yet"],
-    ["[32 Thoughts] Potential three-way trade involving Nikishin and Hellebuyck?", [], "not from a trusted"],
-    // Not player moves, or not NHL.
+    ["[VAN 5 - EDM (3)] Podkolzin taps it in for his first of the year", [], "not from a trusted"],
     ["[Kaplan] Bill Guerin has signed a multi-year contract extension as GM of the Minnesota Wild, sources told ESPN", [], "not an NHL player move"],
     ["Minnesota Wild Signs Head Coach John Hynes to Multi-Year Contract Extension", NHL("wild"), "not an NHL player move"],
     ["The Chicago Wolves have signed Josiah Slavin to a two-year, one-way AHL contract.", NHL("blackhawks"), "not an NHL player move"],
-    // Lists with no team, and game highlights.
     ["[Johnston] Notable players on waivers today", [], "no NHL team named"],
-    ["[VAN 5 - EDM (3)] Podkolzin taps it in for his first of the year", [], "not from a trusted"],
-    ["Post Game Thread: Montréal Canadiens @ Toronto Maple Leafs", NHL("mapleleafs"), "no completed"],
-    // "Complete/finalize/announce a trade" as a plan, not news.
-    ["[Friedman] Toronto and Vancouver set to complete trade", [], "no completed"],
-    ["[LeBrun] Leafs looking to complete a trade with Vancouver before the season", [], "no completed"],
-    ["[Johnston] Toronto and Vancouver haven't completed the trade yet", [], "no completed"],
-    ["[Dreger] Toronto and Vancouver have not finalized the trade", [], "no completed"],
-    ["[Dreger] Leafs should complete the trade with Vancouver today", [], "no completed"],
-    ["[Friedman] Toronto, Vancouver expected to complete trade", [], "not confirmed yet"],
-    ["[Friedman] Toronto and Vancouver to announce trade shortly", [], "no completed"],
-    ["[Friedman] Toronto and Vancouver set to officially complete trade", [], "no completed"],
-    ["[Johnston] Toronto and Vancouver haven't yet completed the trade", [], "no completed"],
-    ["[Dreger] Toronto and Vancouver have not yet finalized the trade", [], "no completed"],
-    ["[LeBrun] The Leafs haven’t officially announced the trade", [], "no completed"],
-    ["[Friedman] Toronto and Vancouver cannot complete trade until Monday", [], "no completed"],
-    ["[Friedman] Toronto and Vancouver can now complete trade", [], "no completed"],
-    ["[Friedman] Toronto and Vancouver cant complete trade until Monday", [], "no completed"],
-    ["Did the Maple Leafs complete trade with Vancouver?", NHL("mapleleafs"), "not confirmed yet"],
-    ["Maple Leafs complete trade deadline preparations", NHL("mapleleafs"), "no completed"],
-    ["Maple Leafs announce trade freeze plans for holiday roster", NHL("mapleleafs"), "no completed"],
-  ])("%s", (title, links, reason) => {
-    const v = classify({ title, links });
-    expect(v.confirmed).toBe(false);
+  ])("%s", async (title, links, reason) => {
+    const read = reader(done("signing"));
+    const v = await classify({ title, links }, read);
+    expect(v).toMatchObject({ confirmed: false });
     expect(!v.confirmed && v.reason).toContain(reason);
+    expect(read).not.toHaveBeenCalled();
+  });
+});
+
+describe("what Claude is asked", () => {
+  it.each<[string, string[], Headline]>([
+    ["[Friedman] Gaudet (STL) on waivers", [], { text: "Gaudet (STL) on waivers", source: "Elliotte Friedman", sourceKind: "insider" }],
+    ["Leafs acquire forward from Ottawa", TWEET("PierreVLeBrun"), { text: "Leafs acquire forward from Ottawa", source: "Pierre LeBrun", sourceKind: "insider" }],
+    ["[Habs] One-year contract for Arber Xhekaj", [], { text: "One-year contract for Arber Xhekaj", source: "Montréal Canadiens", sourceKind: "team account" }],
+    ["Canucks claim Leevi Merilainen off waivers from Ottawa", NHL("canucks"), { text: "Canucks claim Leevi Merilainen off waivers from Ottawa", source: "NHL.com", sourceKind: "official site" }],
+  ])("%s", async (title, links, headline) => {
+    const read = reader(done("waiver"));
+    await classify({ title, links }, read);
+    expect(read).toHaveBeenCalledWith(headline);
+  });
+});
+
+describe("using Claude's answer", () => {
+  it("posts a finished move with the teams the code found, in order of mention", async () => {
+    const title = "[Friedman] Columbus: Knies, Lorentz, Andrae and a 2nd Tor: Marchenko, Miles Wood, Merzlikins (some retained salary)";
+    const players = ["Knies", "Lorentz", "Andrae", "Marchenko", "Miles Wood", "Merzlikins"];
+    expect(await classify({ title, links: [] }, reader(done("trade", players)))).toEqual({
+      confirmed: true,
+      type: "trade",
+      teams: ["CBJ", "TOR"],
+      players,
+      source: "Elliotte Friedman",
+    });
+  });
+
+  it("takes the team from an nhl.com link when the headline names none", async () => {
+    const v = await classify({ title: "Islanders Sign Dravecky", links: NHL("islanders") }, reader(done("signing", ["Dravecky"])));
+    expect(v).toMatchObject({ confirmed: true, type: "signing", teams: ["NYI"], source: "NHL.com" });
+  });
+
+  it("drops player names that aren't in the headline, ignoring case, accents and apostrophes", async () => {
+    const title = "MINNESOTA WILD ACQUIRES FORWARD BLAKE COLEMAN AND DEFENSEMAN OLLI MÄÄTTÄ FROM CALGARY 070226";
+    const v = await classify({ title, links: NHL("wild") }, reader(done("trade", ["Blake Coleman", "Olli Maatta", "Connor McDavid", " "])));
+    expect(v.confirmed && v.players).toEqual(["Blake Coleman", "Olli Maatta"]);
+
+    const v2 = await classify({ title: "[Friedman] Leafs acquire Ryan O’Reilly from Nashville", links: [] }, reader(done("trade", ["Ryan O'Reilly"])));
+    expect(v2.confirmed && v2.players).toEqual(["Ryan O'Reilly"]);
+  });
+
+  it("skips a move that isn't done, with Claude's reason", async () => {
+    const title = "[LeBrun] The proposed Leafs-Blue Jackets trade involves multiple pieces, including Knies and Marchenko, and it's not a done deal yet.";
+    const v = await classify({ title, links: [] }, reader({ ok: true, move: "trade", done: false, players: [], reason: "says it's not a done deal" }));
+    expect(v).toEqual({ confirmed: false, reason: "not confirmed yet (says it's not a done deal)" });
+  });
+
+  it("skips what isn't a trade, waiver or signing", async () => {
+    const v = await classify(
+      { title: "Jacob Fowler recalled from Laval Rocket", links: NHL("canadiens") },
+      reader({ ok: true, move: "none", done: true, players: [], reason: "a recall" }),
+    );
+    expect(v).toEqual({ confirmed: false, reason: "not a trade, waiver or signing (a recall)" });
+  });
+
+  it("marks the post for another try when Claude can't be reached", async () => {
+    const v = await classify({ title: "[Friedman] Gaudet (STL) on waivers", links: [] }, reader({ ok: false, unavailable: true, reason: "Claude API 529" }));
+    expect(v).toEqual({ confirmed: false, reason: "Claude API 529", unavailable: true });
+  });
+
+  it("skips the post when Claude's answer can't be used", async () => {
+    const v = await classify({ title: "[Friedman] Gaudet (STL) on waivers", links: [] }, reader({ ok: false, unavailable: false, reason: "Claude declined to read this headline" }));
+    expect(v).toEqual({ confirmed: false, reason: "Claude declined to read this headline" });
   });
 });

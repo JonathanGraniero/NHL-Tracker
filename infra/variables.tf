@@ -54,3 +54,9 @@ variable "discord_bot_token" {
   type      = string
   sensitive = true
 }
+
+variable "anthropic_api_key" {
+  description = "Claude API key. Claude reads the wording of trusted news posts."
+  type        = string
+  sensitive   = true
+}

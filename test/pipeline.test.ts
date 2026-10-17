@@ -8,6 +8,7 @@ import { parseFeed, type SourceItem } from "../src/sources/reddit";
 import { parseStories } from "../src/sources/nhl-news";
 import { createTestD1 } from "./helpers/d1";
 import { createTestBot, requestJson, type TestBot } from "./helpers/discord";
+import { FakeClaude } from "./helpers/model";
 import type { MessageBody } from "../src/discord/api";
 
 const KNIES_FEED = readFileSync(join(import.meta.dirname, "fixtures/knies-search.xml"), "utf8");
@@ -36,6 +37,12 @@ const post = (id: string, title: string, publishedAt: number, links: string[] = 
 
 const knies = parseFeed(KNIES_FEED);
 const friedmanTrade = knies.find((i) => i.id === FRIEDMAN_TRADE_ID)!;
+const lebrunNotDone = knies.find((i) => i.id === LEBRUN_NOT_DONE_ID)!;
+const MAPLE_LEAFS_TRADE = "[Maple Leafs] The Maple Leafs have acquired Matthew Knies' replacement Kirill Marchenko from Columbus";
+const LEAFS_CANUCKS_STORY = "Maple Leafs complete trade with Vancouver";
+const FRIEDMAN_LEAFS_CANUCKS = "[Friedman] Vancouver: Player One and a 3rd Tor: Player Two";
+const BRISSON = "[Friedman] Leafs sign Brendan Brisson to a one year contract";
+const KNIES_SIGNING = "[Friedman] Leafs sign Matthew Knies to a two year contract";
 
 let db: D1Database;
 let bot: TestBot;
@@ -43,10 +50,19 @@ let redditFeed: SourceItem[];
 let redditStatus: number;
 let sent: { channelId: string; body: MessageBody }[];
 let edits: MessageBody[];
+let claude: FakeClaude;
 
 beforeEach(async () => {
   db = createTestD1();
   bot = await createTestBot(db);
+  claude = new FakeClaude()
+    .answer(friedmanTrade.title, { move: "trade", players: ["Knies", "Lorentz", "Andrae", "Marchenko", "Miles Wood", "Merzlikins"] })
+    .answer(lebrunNotDone.title, { move: "trade", done: false, reason: "says it's not a done deal yet" })
+    .answer(MAPLE_LEAFS_TRADE, { move: "trade", players: ["Kirill Marchenko"] })
+    .answer(LEAFS_CANUCKS_STORY, { move: "trade" })
+    .answer(FRIEDMAN_LEAFS_CANUCKS, { move: "trade", players: ["Player One", "Player Two"] })
+    .answer(BRISSON, { move: "signing", players: ["Brendan Brisson"] })
+    .answer(KNIES_SIGNING, { move: "signing", players: ["Matthew Knies"] });
   redditFeed = [];
   redditStatus = 200;
   sent = [];
@@ -55,6 +71,7 @@ beforeEach(async () => {
 
   vi.spyOn(globalThis, "fetch").mockImplementation(async (input, init) => {
     const url = String(input instanceof Request ? input.url : input);
+    if (claude.handles(url)) return claude.respond(init);
     if (url.startsWith("https://forge-dapi.d3.nhle.com/")) return Response.json({ items: [] }); // NHL.com news: quiet
     if (url.startsWith("https://www.reddit.com/r/hockey/new.rss")) {
       return new Response(feed([...redditFeed].reverse()), { status: redditStatus });
@@ -119,9 +136,7 @@ describe("runScan", () => {
     await primeScanner(TRADE_TIME - 60_000);
     redditFeed = [friedmanTrade];
     await runScan(bot.env, TRADE_TIME + 60_000);
-    redditFeed.push(
-      post("t3_team", "[Maple Leafs] The Maple Leafs have acquired Matthew Knies' replacement Kirill Marchenko from Columbus", TRADE_TIME + 30 * 60_000),
-    );
+    redditFeed.push(post("t3_team", MAPLE_LEAFS_TRADE, TRADE_TIME + 30 * 60_000));
     await runScan(bot.env, TRADE_TIME + 31 * 60_000);
     expect(sent).toHaveLength(3);
   });
@@ -144,6 +159,41 @@ describe("runScan", () => {
     await runScan(bot.env, TRADE_TIME + 3 * 60_000);
     expect(sent).toHaveLength(3);
   });
+
+  it("asks Claude only about posts from trusted sources that name a team", async () => {
+    await primeScanner(TRADE_TIME - 60_000);
+    redditFeed = knies.filter((i) => Math.abs(i.publishedAt - TRADE_TIME) < 3 * 60 * 60 * 1000);
+    await runScan(bot.env, TRADE_TIME + 60_000);
+    expect(claude.asked).toHaveLength(redditFeed.filter((i) => /^\[(Friedman|LeBrun)\]/.test(i.title)).length);
+  });
+
+  it("leaves posts for the next scan while Claude is down, after one failed call", async () => {
+    await primeScanner(TRADE_TIME - 60_000);
+    const waiver = post("t3_w", "[Friedman] Gaudet (STL) on waivers", TRADE_TIME);
+    const fanPost = post("t3_fan", "Matthew Knies was traded by all 3 of his GMs in Toronto", TRADE_TIME);
+    redditFeed = [friedmanTrade, waiver, fanPost];
+    claude.status = 529;
+    await runScan(bot.env, TRADE_TIME + 60_000);
+    expect(sent).toEqual([]);
+    expect(claude.asked).toHaveLength(1);
+
+    claude.status = 200;
+    await runScan(bot.env, TRADE_TIME + 3 * 60_000);
+    expect(sent).toHaveLength(3);
+    // The trade and the waiver post were asked about again; the fan post was settled without Claude.
+    expect(claude.asked).toHaveLength(3);
+    await runScan(bot.env, TRADE_TIME + 5 * 60_000);
+    expect(claude.asked).toHaveLength(3);
+  });
+
+  it("asks Claude at most 15 times a scan and leaves the rest for the next one", async () => {
+    await primeScanner(TRADE_TIME - 60_000);
+    redditFeed = Array.from({ length: 17 }, (_, n) => post(`t3_w${n}`, `[Friedman] Player${n} (STL) on waivers`, TRADE_TIME));
+    await runScan(bot.env, TRADE_TIME + 60_000);
+    expect(claude.asked).toHaveLength(15);
+    await runScan(bot.env, TRADE_TIME + 3 * 60_000);
+    expect(claude.asked).toHaveLength(17);
+  });
 });
 
 describe("processItem", () => {
@@ -164,7 +214,7 @@ describe("processItem", () => {
       items: [
         {
           slug: "maple-leafs-complete-trade-with-vancouver-x8932",
-          title: "Maple Leafs complete trade with Vancouver",
+          title: LEAFS_CANUCKS_STORY,
           contentDate: new Date(LEAFS_CANUCKS).toISOString(),
           context: { slug: "teamid-10" },
           tags: [{ slug: "teamid-10", title: "Toronto Maple Leafs" }],
@@ -182,7 +232,7 @@ describe("processItem", () => {
     });
 
     it("isn't posted again when an insider already reported the trade", async () => {
-      const friedman = post("t3_f", "[Friedman] Vancouver: Player One and a 3rd Tor: Player Two", LEAFS_CANUCKS - 20 * 60_000);
+      const friedman = post("t3_f", FRIEDMAN_LEAFS_CANUCKS, LEAFS_CANUCKS - 20 * 60_000);
       expect(await processItem(bot.env, friedman, { now: LEAFS_CANUCKS - 20 * 60_000 })).toMatchObject({ kind: "posted" });
       expect(await processItem(bot.env, story!, { now: LEAFS_CANUCKS })).toMatchObject({ kind: "duplicate" });
       expect(sent).toHaveLength(2);
@@ -190,8 +240,8 @@ describe("processItem", () => {
   });
 
   it("keeps separate signings for the same team apart", async () => {
-    const a = post("t3_a", "[Friedman] Leafs sign Brendan Brisson to a one year contract", TRADE_TIME);
-    const b = post("t3_b", "[Friedman] Leafs sign Matthew Knies to a two year contract", TRADE_TIME + 60_000);
+    const a = post("t3_a", BRISSON, TRADE_TIME);
+    const b = post("t3_b", KNIES_SIGNING, TRADE_TIME + 60_000);
     expect(await processItem(bot.env, a, { now: TRADE_TIME })).toMatchObject({ kind: "posted" });
     expect(await processItem(bot.env, b, { now: TRADE_TIME })).toMatchObject({ kind: "posted" });
   });

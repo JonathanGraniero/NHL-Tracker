@@ -39,6 +39,7 @@ export async function createTestBot(db: D1Database): Promise<TestBot> {
     DISCORD_APPLICATION_ID: "123",
     DISCORD_PUBLIC_KEY: toHex((await crypto.subtle.exportKey("raw", keys.publicKey)) as ArrayBuffer),
     DISCORD_BOT_TOKEN: "unused",
+    ANTHROPIC_API_KEY: "unused",
   };
 
   let nextId = 1;

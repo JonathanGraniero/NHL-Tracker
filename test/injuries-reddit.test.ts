@@ -12,6 +12,7 @@ import type { SourceItem } from "../src/sources/reddit";
 import { createTestD1 } from "./helpers/d1";
 import { createTestBot, requestJson, type TestBot } from "./helpers/discord";
 import { espnEntry, espnResponse } from "./helpers/espn";
+import { FakeClaude } from "./helpers/model";
 
 // Real r/hockey titles from September 2026.
 const REAL = {
@@ -101,6 +102,8 @@ let nhlStatus: number;
 let sent: { channelId: string; body: MessageBody; id: string }[];
 let edited: { channelId: string; body: MessageBody }[];
 let replyEdits: MessageBody[];
+let claude: FakeClaude;
+const KNIES_TRADE = "[Friedman] Columbus: Knies, Lorentz, Andrae and a 2nd Tor: Marchenko, Miles Wood, Merzlikins";
 
 const ROSTERS: Record<string, string[]> = {
   MIN: ["Brock Faber", "Kirill Kaprizov", "Joel Eriksson Ek"],
@@ -147,10 +150,13 @@ beforeEach(async () => {
   sent = [];
   edited = [];
   replyEdits = [];
+  // Team-tagged injury posts reach Claude first; it says they aren't moves.
+  claude = new FakeClaude().answer(KNIES_TRADE, { move: "trade", players: ["Knies", "Marchenko"] });
   for (const level of ["log", "warn", "error"] as const) vi.spyOn(console, level).mockImplementation(() => {});
 
   vi.spyOn(globalThis, "fetch").mockImplementation(async (input, init) => {
     const url = String(input instanceof Request ? input.url : input);
+    if (claude.handles(url)) return claude.respond(init);
     if (url.startsWith("https://forge-dapi.d3.nhle.com/")) return Response.json({ items: [] }); // NHL.com news: quiet
     if (url.startsWith("https://www.reddit.com/r/hockey/new.rss")) return new Response(rssFeed(feed));
     if (url.includes("reddit.com/by_id/t3_faber")) return new Response(rssFeed([post("t3_faber", REAL.faber, T0)]));
@@ -278,7 +284,7 @@ it("skips an injury post rather than stalling the scan when NHL.com is down", as
   nhlStatus = 503;
   feed = [
     post("t3_faber", REAL.faber, T0 + MIN),
-    post("t3_trade", "[Friedman] Columbus: Knies, Lorentz, Andrae and a 2nd Tor: Marchenko, Miles Wood, Merzlikins", T0 + MIN),
+    post("t3_trade", KNIES_TRADE, T0 + MIN),
   ];
   await upsertSubscription(db, { guildId: "g1", channelId: "leafs", teamCode: "TOR", types: ["trade"] });
   await expect(runScan(bot.env, T0 + 2 * MIN)).resolves.toBeUndefined();
