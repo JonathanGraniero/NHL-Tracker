@@ -41,6 +41,11 @@ resource "cloudflare_workers_script" "bot" {
       type = "secret_text"
       text = var.discord_bot_token
     },
+    {
+      name = "ANTHROPIC_API_KEY"
+      type = "secret_text"
+      text = var.anthropic_api_key
+    },
   ]
 
   observability = {

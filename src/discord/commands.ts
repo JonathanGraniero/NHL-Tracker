@@ -311,6 +311,7 @@ function replay(env: Env, ctx: ExecutionContext, guildId: string, interaction: I
 function describeReplay(outcome: Outcome, title: string): string {
   const quoted = `> ${title}`;
   if (outcome.kind === "rejected") return `⏭️ **Wouldn't post this:** ${outcome.reason}.\n${quoted}`;
+  if (outcome.kind === "unavailable") return `⏳ Couldn't reach Claude, which reads the headlines (${outcome.reason}). Try again in a minute.\n${quoted}`;
   if (outcome.kind === "duplicate") return `✅ Already recorded as a confirmed move.\n${quoted}`;
 
   const { event, channels, failed } = outcome;

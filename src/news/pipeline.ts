@@ -1,5 +1,6 @@
 import { classify } from "./classify";
 import { buildMessage } from "./embed";
+import { claudeReader, type ReadHeadline } from "./model";
 import { createMessage } from "../discord/api";
 import {
   filterUnseen,
@@ -32,6 +33,12 @@ const DEDUPE_WINDOW_MS = 48 * 60 * 60 * 1000;
  * requests per run, shared with Reddit, roster lookups and trade posts.
  */
 const INJURY_BUDGET = 20;
+/**
+ * Claude calls per scan, from the same 50. Only posts from trusted sources
+ * that name a team get this far, usually a few per scan; any beyond the
+ * budget wait for the next scan.
+ */
+const MODEL_BUDGET = 15;
 /** Where news comes from. Each keeps its own seen items and first-run baseline. */
 interface NewsSource {
   name: SourceItem["source"];
@@ -63,6 +70,8 @@ const SOURCES: readonly NewsSource[] = [
 
 export type Outcome =
   | { kind: "rejected"; reason: string }
+  /** Claude couldn't be asked: leave the item for the next scan. */
+  | { kind: "unavailable"; reason: string }
   | { kind: "duplicate"; event: NewsEvent }
   | { kind: "posted"; event: NewsEvent; channels: string[]; failed: string[] };
 
@@ -73,10 +82,26 @@ export type Outcome =
  */
 export async function runScan(env: Env, now: number): Promise<void> {
   const injuryBudget = new Budget(INJURY_BUDGET);
-  for (const source of SOURCES) await scanSource(env, now, source, injuryBudget);
+  const readHeadline = scanReader(claudeReader(env.ANTHROPIC_API_KEY), new Budget(MODEL_BUDGET));
+  for (const source of SOURCES) await scanSource(env, now, source, injuryBudget, readHeadline);
 }
 
-async function scanSource(env: Env, now: number, source: NewsSource, injuryBudget: Budget): Promise<void> {
+/**
+ * Claude for one scan: within the budget, and after the API fails once, no
+ * more calls this scan, so an outage costs one timeout rather than one per post.
+ */
+function scanReader(read: ReadHeadline, budget: Budget): ReadHeadline {
+  let down: string | undefined;
+  return async (headline) => {
+    if (down) return { ok: false, unavailable: true, reason: down };
+    if (!budget.take()) return { ok: false, unavailable: true, reason: "Claude budget for this scan used up" };
+    const reading = await read(headline);
+    if (!reading.ok && reading.unavailable) down = reading.reason;
+    return reading;
+  };
+}
+
+async function scanSource(env: Env, now: number, source: NewsSource, injuryBudget: Budget, readHeadline: ReadHeadline): Promise<void> {
   let items: SourceItem[];
   try {
     items = await source.fetch();
@@ -102,7 +127,12 @@ async function scanSource(env: Env, now: number, source: NewsSource, injuryBudge
     if (now - item.publishedAt > MAX_AGE_MS) {
       log({ item: item.id, title: item.title, outcome: "too old" });
     } else {
-      const outcome = await processItem(env, item, { now });
+      const outcome = await processItem(env, item, { now, readHeadline });
+      if (outcome.kind === "unavailable") {
+        // Not marked seen: the next scan asks Claude again, until the post is too old.
+        log({ item: item.id, title: item.title, ...describe(outcome) });
+        continue;
+      }
       // Not a confirmed move: maybe breaking injury news.
       const injury =
         source.injuries && outcome.kind === "rejected" ? await processInjuryItem(env, item, now, injuryBudget) : undefined;
@@ -125,10 +155,10 @@ async function scanSource(env: Env, now: number, source: NewsSource, injuryBudge
 export async function processItem(
   env: Env,
   item: SourceItem,
-  opts: { now: number; guildId?: string },
+  opts: { now: number; guildId?: string; readHeadline?: ReadHeadline },
 ): Promise<Outcome> {
-  const verdict = classify(item);
-  if (!verdict.confirmed) return { kind: "rejected", reason: verdict.reason };
+  const verdict = await classify(item, opts.readHeadline ?? claudeReader(env.ANTHROPIC_API_KEY));
+  if (!verdict.confirmed) return { kind: verdict.unavailable ? "unavailable" : "rejected", reason: verdict.reason };
 
   const candidate: Omit<NewsEvent, "id"> = {
     type: verdict.type,
@@ -209,6 +239,7 @@ function pickLink(links: readonly string[]): string | null {
 type OutcomeLog =
   | { outcome: "too old" }
   | { outcome: "rejected"; reason: string }
+  | { outcome: "unavailable"; reason: string }
   | { outcome: "duplicate"; event: number }
   | { outcome: "posted"; event: number; type: TransactionType; teams: string[]; channels: number; failed: number }
   | { outcome: "injury rejected"; reason: string }
@@ -231,6 +262,8 @@ function describe(outcome: Outcome): OutcomeLog {
   switch (outcome.kind) {
     case "rejected":
       return { outcome: "rejected", reason: outcome.reason };
+    case "unavailable":
+      return { outcome: "unavailable", reason: outcome.reason };
     case "duplicate":
       return { outcome: "duplicate", event: outcome.event.id };
     case "posted":

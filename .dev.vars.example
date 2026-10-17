@@ -3,5 +3,7 @@
 DISCORD_APPLICATION_ID=
 DISCORD_PUBLIC_KEY=
 DISCORD_BOT_TOKEN=
+# Claude reads the wording of news posts (also used by npm run eval)
+ANTHROPIC_API_KEY=
 # Optional: register commands to one server instantly while developing
 DISCORD_DEV_GUILD_ID=

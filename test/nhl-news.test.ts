@@ -1,7 +1,6 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { classify } from "../src/news/classify";
 import { runScan } from "../src/news/pipeline";
 import { nhlComPath, TEAMS } from "../src/data/teams";
 import { parseStories, storySlugFromUrl, storyUrl, type NhlStoriesResponse, type NhlStory } from "../src/sources/nhl-news";
@@ -10,6 +9,7 @@ import type { MessageBody } from "../src/discord/api";
 import type { SourceItem } from "../src/sources/reddit";
 import { createTestD1 } from "./helpers/d1";
 import { createTestBot, requestJson, type TestBot } from "./helpers/discord";
+import { FakeClaude } from "./helpers/model";
 
 // NHL.com's real "transactions" stories, 2026-09-27 to 2026-10-07.
 const FIXTURE = JSON.parse(
@@ -73,26 +73,6 @@ describe("nhlComPath", () => {
   });
 });
 
-describe("which NHL.com stories are moves", () => {
-  it("picks out the signings, trades and waivers, and skips recalls and roster news", () => {
-    const moves = parseStories(FIXTURE).flatMap((i) => {
-      const v = classify(i);
-      return v.confirmed ? [`${v.type} ${v.teams.join("/")}: ${i.title}`] : [];
-    });
-    expect(moves).toEqual([
-      "signing NYI: Islanders Sign Dravecky",
-      "signing PHI: FLYERS SIGN MICHAEL BUNTING TO ONE-YEAR CONTRACT",
-      "trade PHI/SEA: FLYERS ACQUIRE DAVID GOYETTE FROM SEATTLE",
-      "signing VGK: Golden Knights Sign William Karlsson to Two-Year Contract Extension",
-      "waiver CAR: Canes Place Primeau On Waivers",
-      "trade TOR/CBJ: Maple Leafs acquire Kirill Marchenko in trade with Blue Jackets for Matthew Knies",
-      "signing NSH: Predators Sign Tyson Jost to One-Year, Two-Way Contract - 2026_09-28",
-      "signing FLA: Florida Panthers Agree to Terms with Forward Nathan Bastian on a One-Year, Two-Way Contract",
-      "waiver NJD: 6 Placed on Waivers | TRANSACTIONS 9.27.26",
-    ]);
-  });
-});
-
 // --- The scan, with both sources ---------------------------------------------
 
 const T0 = Date.parse("2026-10-07T14:00:00Z");
@@ -106,6 +86,7 @@ let nhlStatus: number;
 let redditStatus: number;
 let sent: { channelId: string; body: MessageBody }[];
 let replies: MessageBody[];
+let claude: FakeClaude;
 
 function rss(items: SourceItem[]): string {
   const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -127,9 +108,16 @@ beforeEach(async () => {
   redditStatus = 200;
   sent = [];
   replies = [];
+  // Which of these stories are moves is Claude's call (measured by npm run eval); here it answers as it should.
+  claude = new FakeClaude()
+    .answer("Islanders Sign Dravecky", { move: "signing", players: ["Dravecky"] })
+    .answer("FLYERS SIGN MICHAEL BUNTING TO ONE-YEAR CONTRACT", { move: "signing", players: ["MICHAEL BUNTING"] })
+    .answer("[Dreger] The Flyers are bringing in Michael Bunting for some spark. Deal agreed to at $1.2 mil. AAV.", { move: "signing", players: ["Michael Bunting"] })
+    .answer("[Friedman] Canes Place Primeau On Waivers", { move: "waiver", players: ["Primeau"] });
   for (const level of ["log", "warn", "error"] as const) vi.spyOn(console, level).mockImplementation(() => {});
   vi.spyOn(globalThis, "fetch").mockImplementation(async (input, init) => {
     const url = String(input instanceof Request ? input.url : input);
+    if (claude.handles(url)) return claude.respond(init);
     const single = url.match(/forge-dapi\.d3\.nhle\.com\/v2\/content\/en-us\/stories\/([a-z0-9-]+)$/);
     if (single) {
       const found = FIXTURE.items.find((s) => s.slug === single[1]);

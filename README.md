@@ -1,6 +1,6 @@
 # NHL Tracker
 
-A Discord bot that posts **confirmed** NHL trades, waiver moves and signings to the channels that subscribe to each team. It runs on **Cloudflare Workers** with a **D1** database, so it costs nothing on the free tier and needs no server.
+A Discord bot that posts **confirmed** NHL trades, waiver moves and signings to the channels that subscribe to each team. It runs on **Cloudflare Workers** with a **D1** database, so it needs no server and the hosting is free; Claude Haiku reads the headlines for well under $1 a month.
 
 - **Confirmed only.** Posts come only from trusted insiders (Friedman, LeBrun, …) or official NHL and team sources, and only when the wording describes a completed move.
 - **No duplicates.** Deduplication happens at three levels: source item, real-world event, and channel.
@@ -51,14 +51,22 @@ On r/hockey, the Worker reads the RSS feed. Reddit blocks its JSON API from Work
 
 ### What counts as confirmed
 
-A post is posted only if **all** of these hold (see [`src/news/classify.ts`](src/news/classify.ts) and its tests, which use real r/hockey titles):
+A post is posted only if **all** of these hold. Code checks the first three ([`src/news/classify.ts`](src/news/classify.ts)); Claude Haiku 5.5 reads the wording ([`src/news/model.ts`](src/news/model.ts)), and only for posts that pass them.
 
 1. **Trusted source:** a `[Tag]` naming a trusted insider (Friedman, LeBrun, Johnston, Dreger, McKenzie, Seravalli, Kaplan, PuckPedia, NHL PR) or a team, or a link to nhl.com or to one of those insiders' tweets.
-2. **No hedging** up to the sentence that states the move: "not a done deal", "closing in", "nearing", "expected", "talks", "rework", questions, and so on.
-3. **Completed-move wording:** *acquired*, *traded*, *in exchange for*, *complete/finalize/announce a trade* (but not after *to*, *should*, *can* or a negation, as in "set to complete trade" or "haven't officially announced the trade"), the `Team: players / Team: players` format (trades); *claimed off waivers*, *placed on waivers* (waivers); *signed*, *agreed to terms*, *extension* (signings).
-4. **An NHL team** is named (or is in the nhl.com link), and it's a player move: coaches, GMs, PTOs and AHL/KHL contracts are skipped.
+2. **A player move:** posts mentioning coaches, GMs, PTOs or AHL/KHL contracts are skipped.
+3. **An NHL team** is named (or is in the nhl.com link). Teams always come from the code, never from Claude.
+4. **Claude says it's a finished trade, waiver move or signing.** Not a rumour, plan, negation ("haven't completed the trade"), question or reaction to an earlier move. It also names the players, and any name that isn't in the headline is dropped.
 
 For the Knies–Marchenko trade, LeBrun's "proposed … not a done deal yet" and Friedman's "rework the trade" were skipped, and Friedman's `Columbus: Knies, Lorentz, Andrae and a 2nd / Tor: Marchenko, Miles Wood, Merzlikins` was posted.
+
+If the Claude API can't be reached, the post isn't marked as seen, so the next scan tries again; posts older than 6 hours are dropped as usual. After one failed call a scan stops asking, and a scan asks at most 15 times (Workers Free allows 50 outside requests per run). A headline Claude declines or answers unreadably is skipped.
+
+**Changing the prompt.** A fix for one wording can break another, so check every change with the eval, which runs about 730 labelled real headlines (the old classifier tests, NHL.com's transaction stories and a year of insider posts on r/hockey) through Claude and lists every wrong answer. It costs about $0.15 per run:
+```bash
+ANTHROPIC_API_KEY=... npm run eval
+```
+The labels are in [`test/fixtures/labelled-headlines.json`](test/fixtures/labelled-headlines.json); `debatable` ones are listed but not scored.
 
 ### No duplicates
 
@@ -138,6 +146,7 @@ In **Settings → Secrets and variables → Actions**:
 | `R2_ACCESS_KEY_ID` | Secret | From step 2.2 |
 | `R2_SECRET_ACCESS_KEY` | Secret | From step 2.2 |
 | `DISCORD_BOT_TOKEN` | Secret | Bot token |
+| `ANTHROPIC_API_KEY` | Secret | Claude API key, from the Claude Console |
 | `CLOUDFLARE_ACCOUNT_ID` | Variable | Cloudflare account ID |
 | `DISCORD_APPLICATION_ID` | Variable | Application ID |
 | `DISCORD_PUBLIC_KEY` | Variable | Public Key |
@@ -158,10 +167,11 @@ Don't use `wrangler deploy`: Terraform owns the Worker and would overwrite it on
 ## Development
 
 ```bash
-npm test                  # unit tests
+npm test                  # unit tests (Claude is faked)
 npm run typecheck
+npm run eval              # the real Claude on labelled headlines (needs ANTHROPIC_API_KEY)
 npm run db:migrate:local  # local D1
-cp .dev.vars.example .dev.vars   # fill in the Discord values
+cp .dev.vars.example .dev.vars   # fill in the Discord values and the Claude API key
 npm run dev               # local Worker; trigger the cron with:
 curl "http://localhost:8787/__scheduled?cron=*/2+*+*+*+*"
 ```
@@ -177,7 +187,8 @@ src/db/subscriptions.ts  Subscription reads and writes (D1)
 src/db/events.ts         Seen items, events and posted messages (the three dedupe layers)
 src/sources/reddit.ts    r/hockey RSS fetch and parse
 src/sources/nhl-news.ts  NHL.com transaction stories (content API), with links to each article
-src/news/classify.ts     Confirmed-only filter: source, wording, type, teams
+src/news/classify.ts     Confirmed-only filter: source, scope and teams in code, then Claude
+src/news/model.ts        Claude reads the wording: kind of move, done or not, players
 src/news/pipeline.ts     Scan → classify → dedupe → post
 src/news/embed.ts        The Discord embed for a move
 src/discord/api.ts       Outgoing Discord REST calls
@@ -201,7 +212,7 @@ src/injuries/reddit.ts   r/hockey injury rules and roster matching
 src/injuries/breaking.ts r/hockey injury post → episode → Discord
 src/db/rosters.ts        NHL.com rosters, cached in D1 for a day
 migrations/              D1 schema
-scripts/                 One-off tools (command registration)
+scripts/                 Command registration, and the classifier eval
 infra/                   Terraform: D1, Worker, cron, workers.dev route
 .github/workflows/       CI: test, plan, migrate, apply, register commands
 test/                    Vitest tests (D1 is simulated with Node's built-in SQLite and the real migrations)
