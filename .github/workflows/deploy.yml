@@ -31,6 +31,9 @@ jobs:
 
   deploy:
     needs: test
+    # Dependabot's pull requests don't get these secrets, so their plan would
+    # always fail; their tests still run, and main plans again before applying.
+    if: github.event.pull_request.user.login != 'dependabot[bot]'
     runs-on: ubuntu-latest
     env:
       APPLY: ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/main' }}
