@@ -33,6 +33,11 @@ describe("parseFeed", () => {
     expect(items.some((i) => i.title.includes("’") || i.title.includes("&"))).toBe(true);
     expect(items.some((i) => /&(amp|quot|#\d+);/.test(i.title))).toBe(false);
   });
+
+  it("decodes both escaping layers of a link and skips empty ones", () => {
+    const entry = `<entry><id>t3_abc</id><title>T</title><link href="https://www.reddit.com/r/hockey/comments/abc/t/" /><published>2026-11-16T00:00:00+00:00</published><content type="html">&lt;a href=&quot;https://x.com/a?s=1&amp;amp;t=2&quot;&gt;x&lt;/a&gt; &lt;a href=&quot;&quot;&gt;&lt;/a&gt;</content></entry>`;
+    expect(parseFeed(entry)[0]?.links).toEqual(["https://x.com/a?s=1&t=2"]);
+  });
 });
 
 describe("postIdFromInput", () => {
