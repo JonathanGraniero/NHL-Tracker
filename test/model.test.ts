@@ -32,7 +32,7 @@ describe("claudeReader", () => {
 
     const [req] = requests;
     expect(req!.url).toBe("https://api.anthropic.com/v1/messages");
-    expect(req!.headers.get("x-api-key")).toBe("key-1");
+    expect(req!.headers.get("authorization")).toBe("Bearer key-1");
     expect(req!.body).toMatchObject({ model: MODEL, output_config: { effort: "medium", format: { type: "json_schema" } } });
     const content = (req!.body.messages as { content: string }[])[0]!.content;
     expect(content).toContain("Source: Elliotte Friedman (NHL insider, posted on r/hockey)");
