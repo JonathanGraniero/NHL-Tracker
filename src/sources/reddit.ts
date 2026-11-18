@@ -66,11 +66,13 @@ export function parseFeed(xml: string): SourceItem[] {
     const published = tag(entry, "published") ?? tag(entry, "updated");
     if (!id?.startsWith("t3_") || !title || !url || !published) continue;
 
-    // <content> is HTML that has been escaped once more for the XML.
-    const html = decodeEntities(tag(entry, "content") ?? "");
-    const links = [...html.matchAll(/href="([^"]+)"/g)]
-      .map(([, href = ""]) => decodeEntities(href))
-      .filter((href) => !/^https?:\/\/([a-z0-9-]+\.)*(reddit\.com|redd\.it|redditmedia\.com)\//i.test(href));
+    // <content> is HTML that has been escaped once more for the XML, so its
+    // attribute quotes are &quot;. Only the links are decoded (both layers):
+    // decoding the whole body was most of a scan's CPU time, and Workers Free
+    // stops a run after 10 ms.
+    const links = [...(tag(entry, "content") ?? "").matchAll(/href=&quot;(.*?)&quot;/g)]
+      .map(([, href = ""]) => decodeEntities(decodeEntities(href)))
+      .filter((href) => href && !/^https?:\/\/([a-z0-9-]+\.)*(reddit\.com|redd\.it|redditmedia\.com)\//i.test(href));
 
     items.push({
       source: "reddit",
